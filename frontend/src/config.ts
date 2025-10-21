@@ -1,36 +1,25 @@
+import configJson from './config.json'
+
 interface Config {
     apiBaseUrl: string
+    backendBaseUrl?: string
 }
 
-let config: Config | null = null
+// 在构建时静态加载配置，移除运行时 fetch 依赖
+const config: Config = {
+    apiBaseUrl:
+        (configJson as any).apiBaseUrl || (configJson as any).backendBaseUrl || 'http://127.0.0.1:3000',
+    backendBaseUrl: (configJson as any).backendBaseUrl
+}
 
 export async function loadConfig(): Promise<Config> {
-    if (config) {
-        return config
-    }
-
-    try {
-        const response = await fetch('/config.json')
-        config = await response.json()
-        return config as Config
-    } catch (error) {
-        console.error('Failed to load config, using defaults:', error)
-        // 默认配置
-        config = {
-            apiBaseUrl: 'http://127.0.0.1:3000'
-        }
-        return config
-    }
+    return config
 }
 
 export function getConfig(): Config {
-    if (!config) {
-        throw new Error('Config not loaded. Call loadConfig() first.')
-    }
     return config
 }
 
 export function getApiUrl(path: string): string {
-    const cfg = getConfig()
-    return `${cfg.apiBaseUrl}${path}`
+    return `${config.apiBaseUrl}${path}`
 }
