@@ -4,7 +4,6 @@ import './Dashboard.css'
 interface User {
     id: number
     username: string
-    email: string
 }
 
 interface DashboardProps {
@@ -63,10 +62,6 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                         <div className="info-item">
                             <span className="info-label">👤 用户名</span>
                             <span className="info-value">{user.username}</span>
-                        </div>
-                        <div className="info-item">
-                            <span className="info-label">📧 邮箱</span>
-                            <span className="info-value">{user.email}</span>
                         </div>
                         <div className="info-item">
                             <span className="info-label">🆔 用户ID</span>

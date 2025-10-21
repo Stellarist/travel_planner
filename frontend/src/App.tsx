@@ -6,7 +6,6 @@ import './App.css'
 interface User {
   id: number
   username: string
-  email: string
 }
 
 function App() {

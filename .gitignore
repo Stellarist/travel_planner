@@ -20,6 +20,7 @@ logs
 /**/dist
 /**/dist-ssr
 /**/*.local
+/**/config.json
 
 # Editor directories and files
 .vscode/*
@@ -31,3 +32,4 @@ logs
 *.njsproj
 *.sln
 *.sw?
+/**/config.json

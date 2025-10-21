@@ -107,11 +107,7 @@ function Login({ onLoginSuccess }: LoginProps) {
                     </button>
                 </div>
 
-                <div className="demo-account">
-                    <p>测试账号：</p>
-                    <p>用户名: admin / 密码: admin123</p>
-                    <p>用户名: user / 密码: password123</p>
-                </div>
+                {/* 已移除测试账号展示 */}
             </div>
         </div>
     )

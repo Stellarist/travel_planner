@@ -3,6 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	"context"
+	"time"
+
+	store "example.com/travel_planner/backend/store"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,15 +28,9 @@ type LoginResponse struct {
 type User struct {
 	ID       int    `json:"id"`
 	Username string `json:"username"`
-	Email    string `json:"email"`
 }
 
-// 模拟用户数据库（实际项目中应该使用真实的数据库）
-var users = map[string]string{
-	"admin":    "admin123",
-	"user":     "password123",
-	"testuser": "test123",
-}
+// 用户数据改为使用 Redis 持久化存储
 
 // LoginHandler 处理用户登录
 func LoginHandler(c *gin.Context) {
@@ -47,27 +45,32 @@ func LoginHandler(c *gin.Context) {
 		return
 	}
 
-	// 验证用户名和密码
-	password, exists := users[req.Username]
-	if !exists || password != req.Password {
-		c.JSON(http.StatusUnauthorized, LoginResponse{
-			Success: false,
-			Message: "用户名或密码错误",
-		})
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+	defer cancel()
+
+	u, err := store.GetUser(ctx, req.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, LoginResponse{Success: false, Message: "服务器错误"})
+		return
+	}
+	if u == nil || !store.VerifyPassword(req.Password, u.PasswordHash) {
+		c.JSON(http.StatusUnauthorized, LoginResponse{Success: false, Message: "用户名或密码错误"})
 		return
 	}
 
-	// 登录成功，返回用户信息和token（这里使用简单的token，实际项目应使用JWT）
-	token := "token_" + req.Username + "_" + "12345"
+	token, err := store.CreateSession(ctx, u.Username, 24*time.Hour)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, LoginResponse{Success: false, Message: "创建会话失败"})
+		return
+	}
 
 	c.JSON(http.StatusOK, LoginResponse{
 		Success: true,
 		Message: "登录成功",
 		Token:   token,
 		User: &User{
-			ID:       1,
-			Username: req.Username,
-			Email:    req.Username + "@example.com",
+			ID:       u.ID,
+			Username: u.Username,
 		},
 	})
 }
@@ -84,20 +87,25 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	// 检查用户是否已存在
-	if _, exists := users[req.Username]; exists {
-		c.JSON(http.StatusConflict, LoginResponse{
-			Success: false,
-			Message: "用户名已存在",
-		})
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	// 检查并创建用户
+	existing, err := store.GetUser(ctx, req.Username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, LoginResponse{Success: false, Message: "服务器错误"})
+		return
+	}
+	if existing != nil {
+		c.JSON(http.StatusConflict, LoginResponse{Success: false, Message: "用户名已存在"})
 		return
 	}
 
-	// 注册新用户
-	users[req.Username] = req.Password
+	_, err = store.CreateUser(ctx, req.Username, req.Password)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, LoginResponse{Success: false, Message: "注册失败"})
+		return
+	}
 
-	c.JSON(http.StatusCreated, LoginResponse{
-		Success: true,
-		Message: "注册成功",
-	})
+	c.JSON(http.StatusCreated, LoginResponse{Success: true, Message: "注册成功"})
 }
