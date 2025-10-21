@@ -74,12 +74,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// 去掉 "Bearer " 前缀
-		if strings.HasPrefix(token, "Bearer ") {
-			token = token[7:]
-		}
-
-		// 解析 token
+		token = strings.TrimPrefix(token, "Bearer ")
 		claims, err := ParseToken(token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": "token 无效或已过期"})
@@ -87,7 +82,6 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// 将用户信息存入上下文
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Next()

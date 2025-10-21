@@ -29,7 +29,6 @@ var Global AppConfig
 
 // Load 读取 config.json，返回服务器地址、redis 配置
 func Load() (serverAddr, redisAddr, redisPwd string, redisDB int) {
-	// 默认值
 	serverAddr = "127.0.0.1:3000"
 	redisAddr = "127.0.0.1:6379"
 	redisPwd = ""
@@ -40,18 +39,17 @@ func Load() (serverAddr, redisAddr, redisPwd string, redisDB int) {
 		if json.Unmarshal(b, &cfg) == nil {
 			Global = cfg
 
-			// 读取服务器配置
 			if cfg.Server.Host != "" && cfg.Server.Port > 0 {
 				serverAddr = fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 			}
 
-			// 读取 Redis 配置
 			if cfg.Redis.Addr != "" {
 				redisAddr = cfg.Redis.Addr
 			}
 			if cfg.Redis.Password != "" {
 				redisPwd = cfg.Redis.Password
 			}
+
 			redisDB = cfg.Redis.DB
 		}
 	}

@@ -25,8 +25,6 @@ func InitRedis(addr, password string, db int) error {
 	return rdb.Ping(ctx).Err()
 }
 
-// ==================== 用户相关 ====================
-
 // UserRecord 存储在 Redis 的用户结构
 type UserRecord struct {
 	ID           int    `json:"id"`
@@ -94,8 +92,6 @@ func CreateUser(ctx context.Context, username, password string) (*UserRecord, er
 func VerifyPassword(plain, hash string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(plain)) == nil
 }
-
-// ==================== 行程相关 ====================
 
 // TripPlanRequest 用户行程规划请求
 type TripPlanRequest struct {
