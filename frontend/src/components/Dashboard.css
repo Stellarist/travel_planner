@@ -1,6 +1,9 @@
 .dashboard-container {
-    min-height: 100vh;
+    height: 100vh;
     background-color: #f5f7fa;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .dashboard-header {
@@ -8,21 +11,35 @@
     color: white;
     padding: 20px 0;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
 }
 
 .header-content {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 0 20px;
+    padding: 0 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .dashboard-header h1 {
     margin: 0;
     font-size: 28px;
     font-weight: bold;
+}
+
+.header-subtitle {
+    margin: 0;
+    font-size: 15px;
+    opacity: 0.9;
+    font-weight: normal;
 }
 
 /* 汉堡菜单按钮 - 在右边 */
@@ -77,8 +94,8 @@
 .sidebar {
     position: fixed;
     top: 0;
-    right: -400px;
-    width: 360px;
+    right: -450px;
+    width: 420px;
     height: 100vh;
     background: white;
     box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
@@ -224,70 +241,61 @@
 }
 
 .dashboard-main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 40px 20px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
 .content-wrapper {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 40px;
     display: flex;
     flex-direction: column;
-    gap: 40px;
-}
-
-.welcome-section {
-    text-align: center;
-    padding: 40px 20px;
-}
-
-.welcome-section h2 {
-    font-size: 32px;
-    color: #333;
-    margin: 0 0 10px 0;
-}
-
-.welcome-section p {
-    font-size: 18px;
-    color: #666;
-    margin: 0;
+    justify-content: center;
+    flex: 1;
 }
 
 .feature-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
 .feature-card {
     background: white;
-    border-radius: 12px;
-    padding: 30px;
+    border-radius: 16px;
+    padding: 40px 30px;
     text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .feature-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-6px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .card-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
+    font-size: 64px;
+    margin-bottom: 20px;
 }
 
 .feature-card h3 {
-    font-size: 20px;
+    font-size: 22px;
     color: #333;
     margin: 0 0 12px 0;
 }
 
 .feature-card p {
-    font-size: 14px;
+    font-size: 15px;
     color: #666;
     margin: 0;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .user-details {
@@ -330,52 +338,25 @@
     color: #333;
 }
 
-@media (max-width: 768px) {
-    .header-content {
-        flex-direction: row;
-        gap: 16px;
-    }
-
-    .sidebar {
-        width: 100%;
-        right: -100%;
-    }
-
-    .user-info {
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .feature-cards {
-        grid-template-columns: 1fr;
-    }
-}
-
 /* 返回按钮 */
 .back-button {
     background: white;
     border: 2px solid #667eea;
     color: #667eea;
-    padding: 10px 20px;
+    padding: 12px 24px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     transition: all 0.3s;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .back-button:hover {
     background: #667eea;
     color: white;
     transform: translateX(-4px);
-}
-
-@media (min-width: 769px) {
-    .sidebar {
-        max-width: 400px;
-    }
 }
