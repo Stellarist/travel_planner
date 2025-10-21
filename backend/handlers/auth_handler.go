@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"example.com/travel_planner/backend/api"
 	"example.com/travel_planner/backend/service"
 	"github.com/gin-gonic/gin"
 )
@@ -33,10 +34,7 @@ type User struct {
 func LoginHandler(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, LoginResponse{
-			Success: false,
-			Message: "请求参数错误",
-		})
+		api.RespondError(c, http.StatusBadRequest, "请求参数错误")
 		return
 	}
 
@@ -45,27 +43,17 @@ func LoginHandler(c *gin.Context) {
 
 	u, err := service.GetUser(ctx, req.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, LoginResponse{
-			Success: false,
-			Message: "服务器错误",
-		})
+		api.RespondError(c, http.StatusInternalServerError, "服务器错误")
 		return
 	}
 	if u == nil || !service.VerifyPassword(req.Password, u.PasswordHash) {
-		c.JSON(http.StatusUnauthorized, LoginResponse{
-			Success: false,
-			Message: "用户名或密码错误",
-		})
+		api.RespondError(c, http.StatusUnauthorized, "用户名或密码错误")
 		return
 	}
 
-	// 生成 JWT token
 	token, err := service.GenerateToken(u.ID, u.Username, 24*time.Hour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, LoginResponse{
-			Success: false,
-			Message: "生成 token 失败",
-		})
+		api.RespondError(c, http.StatusInternalServerError, "生成 token 失败")
 		return
 	}
 
@@ -84,10 +72,7 @@ func LoginHandler(c *gin.Context) {
 func RegisterHandler(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, LoginResponse{
-			Success: false,
-			Message: "请求参数错误",
-		})
+		api.RespondError(c, http.StatusBadRequest, "请求参数错误")
 		return
 	}
 
@@ -96,10 +81,7 @@ func RegisterHandler(c *gin.Context) {
 
 	existing, err := service.GetUser(ctx, req.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, LoginResponse{
-			Success: false,
-			Message: "服务器错误",
-		})
+		api.RespondError(c, http.StatusInternalServerError, "服务器错误")
 		return
 	}
 	if existing != nil {
@@ -112,10 +94,7 @@ func RegisterHandler(c *gin.Context) {
 
 	_, err = service.CreateUser(ctx, req.Username, req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, LoginResponse{
-			Success: false,
-			Message: "注册失败",
-		})
+		api.RespondError(c, http.StatusInternalServerError, "注册失败")
 		return
 	}
 

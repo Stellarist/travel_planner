@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"time"
 
+	"example.com/travel_planner/backend/api"
 	"example.com/travel_planner/backend/service"
 	"github.com/gin-gonic/gin"
 )
 
-// PlanTripRequest 创建行程请求
-type PlanTripRequest struct {
+// TripRequest 创建行程请求
+type TripRequest struct {
 	Destination  string   `json:"destination" binding:"required"`
 	StartDate    string   `json:"startDate" binding:"required"`
 	EndDate      string   `json:"endDate" binding:"required"`
@@ -20,8 +21,8 @@ type PlanTripRequest struct {
 	SpecialNeeds string   `json:"specialNeeds"`
 }
 
-// PlanTripResponse 创建行程响应
-type PlanTripResponse struct {
+// TripResponse 创建行程响应
+type TripResponse struct {
 	Success bool              `json:"success"`
 	Message string            `json:"message"`
 	Trip    *service.TripPlan `json:"trip,omitempty"`
@@ -29,38 +30,27 @@ type PlanTripResponse struct {
 
 // PlanTripHandler 生成行程计划
 func PlanTripHandler(c *gin.Context) {
-	var req PlanTripRequest
+	var req TripRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, PlanTripResponse{
-			Success: false,
-			Message: "请求参数错误: " + err.Error(),
-		})
+		api.RespondError(c, http.StatusBadRequest, "请求参数错误")
 		return
 	}
 
-	username, ok := getUsernameFromContext(c)
+	username, ok := api.GetUsername(c)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, PlanTripResponse{
-			Success: false,
-			Message: "未登录",
-		})
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
 	defer cancel()
 
-	// 获取用户信息
 	user, err := service.GetUser(ctx, username)
 	if err != nil || user == nil {
-		c.JSON(http.StatusUnauthorized, PlanTripResponse{
-			Success: false,
-			Message: "用户不存在",
-		})
+		api.RespondError(c, http.StatusUnauthorized, "用户不存在")
 		return
 	}
 
-	// 构建请求
 	tripReq := &service.TripPlanRequest{
 		Destination:  req.Destination,
 		StartDate:    req.StartDate,
@@ -71,30 +61,21 @@ func PlanTripHandler(c *gin.Context) {
 		SpecialNeeds: req.SpecialNeeds,
 	}
 
-	// 生成行程
 	plan, err := service.GenerateTripPlan(ctx, tripReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, PlanTripResponse{
-			Success: false,
-			Message: "生成行程失败: " + err.Error(),
-		})
+		api.RespondError(c, http.StatusInternalServerError, "生成行程失败: "+err.Error())
 		return
 	}
 
-	// 关联用户
 	plan.UserID = user.ID
 	plan.Username = username
 
-	// 保存行程
 	if err := service.SaveTripPlan(ctx, plan); err != nil {
-		c.JSON(http.StatusInternalServerError, PlanTripResponse{
-			Success: false,
-			Message: "保存行程失败: " + err.Error(),
-		})
+		api.RespondError(c, http.StatusInternalServerError, "保存行程失败")
 		return
 	}
 
-	c.JSON(http.StatusOK, PlanTripResponse{
+	c.JSON(http.StatusOK, TripResponse{
 		Success: true,
 		Message: "行程规划成功",
 		Trip:    plan,
@@ -103,9 +84,9 @@ func PlanTripHandler(c *gin.Context) {
 
 // GetUserTripsHandler 获取用户的所有行程
 func GetUserTripsHandler(c *gin.Context) {
-	username, ok := getUsernameFromContext(c)
+	username, ok := api.GetUsername(c)
 	if !ok {
-		respondUnauthorized(c, "未登录")
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
 		return
 	}
 
@@ -114,18 +95,18 @@ func GetUserTripsHandler(c *gin.Context) {
 
 	trips, err := service.GetUserTrips(ctx, username)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "获取行程失败")
+		api.RespondError(c, http.StatusInternalServerError, "获取行程失败")
 		return
 	}
 
-	respondSuccess(c, gin.H{"trips": trips})
+	api.RespondSuccess(c, trips)
 }
 
 // GetTripHandler 获取单个行程详情
 func GetTripHandler(c *gin.Context) {
 	tripID := c.Param("id")
 	if tripID == "" {
-		respondError(c, http.StatusBadRequest, "缺少行程ID")
+		api.RespondError(c, http.StatusBadRequest, "缺少行程ID")
 		return
 	}
 
@@ -134,29 +115,23 @@ func GetTripHandler(c *gin.Context) {
 
 	trip, err := service.GetTripPlan(ctx, tripID)
 	if err != nil {
-		respondError(c, http.StatusInternalServerError, "获取行程失败")
+		api.RespondError(c, http.StatusInternalServerError, "获取行程失败")
 		return
 	}
-
 	if trip == nil {
-		respondError(c, http.StatusNotFound, "行程不存在")
+		api.RespondError(c, http.StatusNotFound, "行程不存在")
 		return
 	}
 
-	respondSuccess(c, gin.H{"trip": trip})
+	api.RespondSuccess(c, trip)
 }
 
 // DeleteTripHandler 删除行程
 func DeleteTripHandler(c *gin.Context) {
 	tripID := c.Param("id")
-	if tripID == "" {
-		respondError(c, http.StatusBadRequest, "缺少行程ID")
-		return
-	}
-
-	username, ok := getUsernameFromContext(c)
+	username, ok := api.GetUsername(c)
 	if !ok {
-		respondUnauthorized(c, "未登录")
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
 		return
 	}
 
@@ -164,9 +139,9 @@ func DeleteTripHandler(c *gin.Context) {
 	defer cancel()
 
 	if err := service.DeleteTripPlan(ctx, tripID, username); err != nil {
-		respondError(c, http.StatusInternalServerError, "删除失败")
+		api.RespondError(c, http.StatusInternalServerError, "删除失败")
 		return
 	}
 
-	respondSuccess(c, gin.H{"message": "删除成功"})
+	api.RespondSuccess(c, gin.H{"message": "删除成功"})
 }

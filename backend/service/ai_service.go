@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"example.com/travel_planner/backend/config"
 )
 
 // GenerateTripPlan 生成行程计划，使用 OpenAI 兼容接口
 func GenerateTripPlan(ctx context.Context, req *TripPlanRequest) (*TripPlan, error) {
-	cfg := GlobalAppConfig.Model
+	cfg := config.Global.Model
 
 	if cfg.ApiKey == "" || cfg.BaseURL == "" || cfg.Model == "" {
 		return nil, errors.New("模型配置不完整，请检查 config.json")
@@ -39,7 +41,7 @@ func GenerateTripPlan(ctx context.Context, req *TripPlanRequest) (*TripPlan, err
 	return plan, nil
 }
 
-func callOpenAI(ctx context.Context, req *TripPlanRequest, cfg ModelConfig) (*TripPlan, error) {
+func callOpenAI(ctx context.Context, req *TripPlanRequest, cfg config.ModelConfig) (*TripPlan, error) {
 	prompt := buildPrompt(req)
 
 	payload := map[string]interface{}{
