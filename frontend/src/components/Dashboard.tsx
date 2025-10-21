@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './Dashboard.css'
+import TripPlanner from './TripPlanner'
 
 interface User {
     id: number
@@ -13,6 +14,7 @@ interface DashboardProps {
 
 function Dashboard({ user, onLogout }: DashboardProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+    const [currentView, setCurrentView] = useState<'home' | 'planner'>('home')
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen)
@@ -20,6 +22,14 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
     const closeSidebar = () => {
         setIsSidebarOpen(false)
+    }
+
+    const navigateToPlanner = () => {
+        setCurrentView('planner')
+    }
+
+    const navigateToHome = () => {
+        setCurrentView('home')
     }
 
     return (
@@ -80,36 +90,47 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
             <main className="dashboard-main">
                 <div className="content-wrapper">
-                    <div className="welcome-section">
-                        <h2>欢迎来到旅行规划助手！</h2>
-                        <p>开始规划您的下一次精彩旅程</p>
-                    </div>
+                    {currentView === 'home' ? (
+                        <>
+                            <div className="welcome-section">
+                                <h2>欢迎来到旅行规划助手！</h2>
+                                <p>开始规划您的下一次精彩旅程</p>
+                            </div>
 
-                    <div className="feature-cards">
-                        <div className="feature-card">
-                            <div className="card-icon">🗺️</div>
-                            <h3>规划行程</h3>
-                            <p>创建详细的旅行计划，安排每日行程</p>
-                        </div>
+                            <div className="feature-cards">
+                                <div className="feature-card" onClick={navigateToPlanner} style={{ cursor: 'pointer' }}>
+                                    <div className="card-icon">🗺️</div>
+                                    <h3>规划行程</h3>
+                                    <p>创建详细的旅行计划，安排每日行程</p>
+                                </div>
 
-                        <div className="feature-card">
-                            <div className="card-icon">📍</div>
-                            <h3>探索景点</h3>
-                            <p>发现热门景点和隐藏的宝藏</p>
-                        </div>
+                                <div className="feature-card">
+                                    <div className="card-icon">📍</div>
+                                    <h3>探索景点</h3>
+                                    <p>发现热门景点和隐藏的宝藏</p>
+                                </div>
 
-                        <div className="feature-card">
-                            <div className="card-icon">💰</div>
-                            <h3>预算管理</h3>
-                            <p>追踪旅行开支，控制预算</p>
-                        </div>
+                                <div className="feature-card">
+                                    <div className="card-icon">💰</div>
+                                    <h3>预算管理</h3>
+                                    <p>追踪旅行开支，控制预算</p>
+                                </div>
 
-                        <div className="feature-card">
-                            <div className="card-icon">📝</div>
-                            <h3>旅行日记</h3>
-                            <p>记录旅途中的美好时刻</p>
-                        </div>
-                    </div>
+                                <div className="feature-card">
+                                    <div className="card-icon">📝</div>
+                                    <h3>旅行日记</h3>
+                                    <p>记录旅途中的美好时刻</p>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <button onClick={navigateToHome} className="back-button">
+                                ← 返回首页
+                            </button>
+                            <TripPlanner user={user} />
+                        </>
+                    )}
                 </div>
             </main>
         </div>

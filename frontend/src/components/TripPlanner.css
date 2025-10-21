@@ -1,0 +1,413 @@
+.trip-planner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.planner-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.planner-header h2 {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.planner-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+/* 语音输入区域 */
+.voice-input-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    padding: 30px;
+    text-align: center;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.voice-button {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 15px 40px;
+    font-size: 18px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.voice-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.voice-button.listening {
+    background: #ff4757;
+    color: white;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.voice-hint {
+    color: white;
+    margin-top: 15px;
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+/* 表单样式 */
+.planner-form {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* 偏好标签 */
+.preferences-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pref-tag {
+    padding: 8px 16px;
+    border: 2px solid #ddd;
+    border-radius: 20px;
+    background: white;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.pref-tag:hover {
+    border-color: #667eea;
+    color: #667eea;
+}
+
+.pref-tag.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+/* 提交按钮 */
+.submit-button {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+    margin-top: 10px;
+}
+
+.submit-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.submit-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 错误消息 */
+.error-message {
+    background: #ffe5e5;
+    color: #d32f2f;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+/* 行程结果 */
+.trip-result {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.result-header h3 {
+    font-size: 24px;
+    color: #333;
+}
+
+.new-plan-button {
+    padding: 10px 20px;
+    background: white;
+    border: 2px solid #667eea;
+    color: #667eea;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+.new-plan-button:hover {
+    background: #667eea;
+    color: white;
+}
+
+/* 行程摘要 */
+.trip-summary {
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.summary-item .label {
+    color: #666;
+    font-weight: 500;
+}
+
+.summary-item .price {
+    color: #ff4757;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.summary-text {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    color: #555;
+    line-height: 1.6;
+}
+
+/* 行程卡片 */
+.itinerary-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.day-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: box-shadow 0.3s;
+}
+
+.day-card:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.day-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.day-header h4 {
+    font-size: 18px;
+    margin: 0;
+}
+
+.day-date {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.day-cost {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* 活动列表 */
+.activities-list {
+    padding: 20px;
+}
+
+.activity-item {
+    display: flex;
+    gap: 15px;
+    padding: 15px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-time {
+    min-width: 60px;
+    font-weight: bold;
+    color: #667eea;
+    font-size: 14px;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.activity-type {
+    background: #f0f0f0;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #666;
+}
+
+.activity-header h5 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.activity-location {
+    color: #888;
+    font-size: 13px;
+    margin: 5px 0;
+}
+
+.activity-desc {
+    color: #555;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 8px 0;
+}
+
+.activity-tips {
+    background: #fff9e6;
+    padding: 8px 12px;
+    border-left: 3px solid #ffd700;
+    font-size: 13px;
+    color: #666;
+    margin: 8px 0;
+}
+
+.activity-footer {
+    display: flex;
+    gap: 15px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: #888;
+}
+
+/* 住宿信息 */
+.accommodation {
+    background: #f8f9fa;
+    padding: 12px 20px;
+    color: #555;
+    font-size: 14px;
+    border-top: 1px solid #e0e0e0;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .trip-planner {
+        padding: 15px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .result-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .day-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .activity-item {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .activity-time {
+        min-width: auto;
+    }
+}
