@@ -7,27 +7,3 @@
 # OS
 .DS_Store
 Thumbs.db
-
-# Logs
-logs
-*.log
-/**/npm-debug.log*
-/**/arn-debug.log*
-/**/arn-error.log*
-/**/npm-debug.log*
-/**/erna-debug.log*
-/**/node_modules
-/**/dist
-/**/dist-ssr
-/**/*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
