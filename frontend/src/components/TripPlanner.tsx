@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import config from '../config.json';
 import './TripPlanner.css';
 
 interface TripPlannerProps {
@@ -173,7 +174,8 @@ const TripPlanner: React.FC<TripPlannerProps> = () => {
                 return;
             }
 
-            const response = await fetch('http://127.0.0.1:3000/api/trips/plan', {
+            const backendBaseUrl = config.backendBaseUrl || '';
+            const response = await fetch(`${backendBaseUrl}/api/trips/plan`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

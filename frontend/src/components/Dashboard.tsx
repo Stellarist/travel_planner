@@ -36,7 +36,10 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         <div className="dashboard-container">
             <header className="dashboard-header">
                 <div className="header-content">
-                    <h1>旅行规划助手</h1>
+                    <div className="header-text">
+                        <h1>旅行规划助手</h1>
+                        <p className="header-subtitle">开始规划您的下一次精彩旅程</p>
+                    </div>
                     <button
                         className="menu-button"
                         onClick={toggleSidebar}
@@ -92,11 +95,6 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                 <div className="content-wrapper">
                     {currentView === 'home' ? (
                         <>
-                            <div className="welcome-section">
-                                <h2>欢迎来到旅行规划助手！</h2>
-                                <p>开始规划您的下一次精彩旅程</p>
-                            </div>
-
                             <div className="feature-cards">
                                 <div className="feature-card" onClick={navigateToPlanner} style={{ cursor: 'pointer' }}>
                                     <div className="card-icon">🗺️</div>

@@ -1,23 +1,23 @@
 .trip-planner {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 40px;
 }
 
 .planner-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
 }
 
 .planner-header h2 {
-    font-size: 28px;
+    font-size: 36px;
     color: #333;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .planner-header p {
     color: #666;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 /* 语音输入区域 */
@@ -374,40 +374,8 @@
 /* 住宿信息 */
 .accommodation {
     background: #f8f9fa;
-    padding: 12px 20px;
+    padding: 15px 20px;
     color: #555;
     font-size: 14px;
     border-top: 1px solid #e0e0e0;
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-    .trip-planner {
-        padding: 15px;
-    }
-
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-
-    .result-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
-
-    .day-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-
-    .activity-item {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .activity-time {
-        min-width: auto;
-    }
 }
