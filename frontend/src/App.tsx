@@ -1,33 +1,67 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { useState, useEffect } from 'react'
+import Login from './components/Login'
+import Dashboard from './components/Dashboard'
 import './App.css'
 
+interface User {
+  id: number
+  username: string
+  email: string
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // 检查本地存储中是否有用户信息
+    const storedUser = localStorage.getItem('user')
+    const storedToken = localStorage.getItem('token')
+
+    if (storedUser && storedToken) {
+      try {
+        setUser(JSON.parse(storedUser))
+      } catch (err) {
+        console.error('解析用户信息失败:', err)
+        localStorage.removeItem('user')
+        localStorage.removeItem('token')
+      }
+    }
+    setLoading(false)
+  }, [])
+
+  const handleLoginSuccess = (userData: User) => {
+    setUser(userData)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    setUser(null)
+  }
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        加载中...
+      </div>
+    )
+  }
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      {user ? (
+        <Dashboard user={user} onLogout={handleLogout} />
+      ) : (
+        <Login onLoginSuccess={handleLoginSuccess} />
+      )}
     </>
   )
 }

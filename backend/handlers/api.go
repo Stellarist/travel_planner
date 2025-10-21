@@ -9,6 +9,13 @@ import (
 func RegisterRoutes(r *gin.RouterGroup) {
 	r.GET("/", RootHandler)
 	r.GET("/health", HealthCheckHandler)
+
+	// 认证相关路由
+	auth := r.Group("/api/auth")
+	{
+		auth.POST("/login", LoginHandler)
+		auth.POST("/register", RegisterHandler)
+	}
 }
 
 func RootHandler(c *gin.Context) {

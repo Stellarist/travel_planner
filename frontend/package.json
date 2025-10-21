@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "travel_planner",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -25,6 +25,6 @@
     "globals": "^16.4.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.45.0",
-    "vite": "^7.1.7"
+    "vite": "^7.1.11"
   }
 }
