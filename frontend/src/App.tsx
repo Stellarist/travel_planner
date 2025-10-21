@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
+import { loadConfig } from './config'
 import './App.css'
 
 interface User {
@@ -13,29 +14,31 @@ function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 检查本地存储中是否有用户信息
-    const storedUser = localStorage.getItem('user')
-    const storedToken = localStorage.getItem('token')
+    const initApp = async () => {
+      // 加载配置
+      await loadConfig()
 
-    if (storedUser && storedToken) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (err) {
-        console.error('解析用户信息失败:', err)
-        localStorage.removeItem('user')
-        localStorage.removeItem('token')
+      // 检查本地存储
+      const storedUser = localStorage.getItem('user')
+      const storedToken = localStorage.getItem('token')
+
+      if (storedUser && storedToken) {
+        try {
+          setUser(JSON.parse(storedUser))
+        } catch {
+          localStorage.clear()
+        }
       }
+      setLoading(false)
     }
-    setLoading(false)
+
+    initApp()
   }, [])
 
-  const handleLoginSuccess = (userData: User) => {
-    setUser(userData)
-  }
+  const handleLoginSuccess = (userData: User) => setUser(userData)
 
   const handleLogout = () => {
-    localStorage.removeItem('user')
-    localStorage.removeItem('token')
+    localStorage.clear()
     setUser(null)
   }
 

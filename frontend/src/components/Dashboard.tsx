@@ -36,7 +36,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         <div className="dashboard-container">
             <header className="dashboard-header">
                 <div className="header-content">
-                    <div className="header-text">
+                    <div className="header-text" onClick={navigateToHome} style={{ cursor: 'pointer' }}>
                         <h1>旅行规划助手</h1>
                         <p className="header-subtitle">开始规划您的下一次精彩旅程</p>
                     </div>
@@ -122,12 +122,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                             </div>
                         </>
                     ) : (
-                        <>
-                            <button onClick={navigateToHome} className="back-button">
-                                ← 返回首页
-                            </button>
-                            <TripPlanner user={user} />
-                        </>
+                        <TripPlanner user={user} />
                     )}
                 </div>
             </main>

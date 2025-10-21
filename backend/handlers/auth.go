@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"net/http"
-
 	"context"
+	"net/http"
 	"time"
 
-	store "example.com/travel_planner/backend/store"
+	"example.com/travel_planner/backend/service"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,13 +29,9 @@ type User struct {
 	Username string `json:"username"`
 }
 
-// 用户数据改为使用 Redis 持久化存储
-
 // LoginHandler 处理用户登录
 func LoginHandler(c *gin.Context) {
 	var req LoginRequest
-
-	// 绑定并验证请求数据
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, LoginResponse{
 			Success: false,
@@ -48,19 +43,29 @@ func LoginHandler(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
 	defer cancel()
 
-	u, err := store.GetUser(ctx, req.Username)
+	u, err := service.GetUser(ctx, req.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, LoginResponse{Success: false, Message: "服务器错误"})
+		c.JSON(http.StatusInternalServerError, LoginResponse{
+			Success: false,
+			Message: "服务器错误",
+		})
 		return
 	}
-	if u == nil || !store.VerifyPassword(req.Password, u.PasswordHash) {
-		c.JSON(http.StatusUnauthorized, LoginResponse{Success: false, Message: "用户名或密码错误"})
+	if u == nil || !service.VerifyPassword(req.Password, u.PasswordHash) {
+		c.JSON(http.StatusUnauthorized, LoginResponse{
+			Success: false,
+			Message: "用户名或密码错误",
+		})
 		return
 	}
 
-	token, err := store.CreateSession(ctx, u.Username, 24*time.Hour)
+	// 生成 JWT token
+	token, err := service.GenerateToken(u.ID, u.Username, 24*time.Hour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, LoginResponse{Success: false, Message: "创建会话失败"})
+		c.JSON(http.StatusInternalServerError, LoginResponse{
+			Success: false,
+			Message: "生成 token 失败",
+		})
 		return
 	}
 
@@ -78,7 +83,6 @@ func LoginHandler(c *gin.Context) {
 // RegisterHandler 处理用户注册
 func RegisterHandler(c *gin.Context) {
 	var req LoginRequest
-
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, LoginResponse{
 			Success: false,
@@ -90,22 +94,33 @@ func RegisterHandler(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
-	// 检查并创建用户
-	existing, err := store.GetUser(ctx, req.Username)
+	existing, err := service.GetUser(ctx, req.Username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, LoginResponse{Success: false, Message: "服务器错误"})
+		c.JSON(http.StatusInternalServerError, LoginResponse{
+			Success: false,
+			Message: "服务器错误",
+		})
 		return
 	}
 	if existing != nil {
-		c.JSON(http.StatusConflict, LoginResponse{Success: false, Message: "用户名已存在"})
+		c.JSON(http.StatusConflict, LoginResponse{
+			Success: false,
+			Message: "用户名已存在",
+		})
 		return
 	}
 
-	_, err = store.CreateUser(ctx, req.Username, req.Password)
+	_, err = service.CreateUser(ctx, req.Username, req.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, LoginResponse{Success: false, Message: "注册失败"})
+		c.JSON(http.StatusInternalServerError, LoginResponse{
+			Success: false,
+			Message: "注册失败",
+		})
 		return
 	}
 
-	c.JSON(http.StatusCreated, LoginResponse{Success: true, Message: "注册成功"})
+	c.JSON(http.StatusCreated, LoginResponse{
+		Success: true,
+		Message: "注册成功",
+	})
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { getApiUrl } from '../config'
 import './Login.css'
 
 interface LoginProps {
@@ -20,11 +21,9 @@ function Login({ onLoginSuccess }: LoginProps) {
 
         try {
             const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register'
-            const response = await fetch(`http://127.0.0.1:3000${endpoint}`, {
+            const response = await fetch(getApiUrl(endpoint), {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
             })
 
@@ -32,12 +31,10 @@ function Login({ onLoginSuccess }: LoginProps) {
 
             if (data.success) {
                 if (isLogin) {
-                    // 保存token和用户信息
                     localStorage.setItem('token', data.token)
                     localStorage.setItem('user', JSON.stringify(data.user))
                     onLoginSuccess(data.user)
                 } else {
-                    // 注册成功，切换到登录模式
                     alert('注册成功！请登录')
                     setIsLogin(true)
                     setPassword('')
@@ -45,9 +42,8 @@ function Login({ onLoginSuccess }: LoginProps) {
             } else {
                 setError(data.message || '操作失败')
             }
-        } catch (err) {
+        } catch {
             setError('网络错误，请稍后重试')
-            console.error('请求失败:', err)
         } finally {
             setLoading(false)
         }
@@ -106,8 +102,6 @@ function Login({ onLoginSuccess }: LoginProps) {
                         {isLogin ? '没有账号？去注册' : '已有账号？去登录'}
                     </button>
                 </div>
-
-                {/* 已移除测试账号展示 */}
             </div>
         </div>
     )
