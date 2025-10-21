@@ -1,13 +1,7 @@
-import React, { useState } from 'react';
-import config from '../config.json';
+import { useState } from 'react';
+import { getApiUrl } from '../config';
+import '../styles/common.css';
 import './TripPlanner.css';
-
-interface TripPlannerProps {
-    user: {
-        id: number;
-        username: string;
-    };
-}
 
 interface Activity {
     time: string;
@@ -39,8 +33,7 @@ interface TripPlan {
     createdAt: string;
 }
 
-const TripPlanner: React.FC<TripPlannerProps> = () => {
-    // 获取默认日期：今天到3天后
+export default function TripPlanner() {
     const getDefaultDates = () => {
         const today = new Date();
         const threeDaysLater = new Date();
@@ -174,8 +167,7 @@ const TripPlanner: React.FC<TripPlannerProps> = () => {
                 return;
             }
 
-            const backendBaseUrl = config.backendBaseUrl || '';
-            const response = await fetch(`${backendBaseUrl}/api/trips/plan`, {
+            const response = await fetch(getApiUrl('/api/trips/plan'), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -408,6 +400,4 @@ const TripPlanner: React.FC<TripPlannerProps> = () => {
             )}
         </div>
     );
-};
-
-export default TripPlanner;
+}

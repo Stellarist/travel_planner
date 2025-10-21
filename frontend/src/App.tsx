@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
-import { loadConfig } from './config'
 import './App.css'
-
-interface User {
-  id: number
-  username: string
-}
+import type { User } from './types'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -15,9 +10,6 @@ function App() {
 
   useEffect(() => {
     const initApp = async () => {
-      // 加载配置
-      await loadConfig()
-
       // 检查本地存储
       const storedUser = localStorage.getItem('user')
       const storedToken = localStorage.getItem('token')

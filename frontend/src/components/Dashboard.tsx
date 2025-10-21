@@ -1,11 +1,7 @@
 import { useState } from 'react'
 import './Dashboard.css'
 import TripPlanner from './TripPlanner'
-
-interface User {
-    id: number
-    username: string
-}
+import type { User } from '../types'
 
 interface DashboardProps {
     user: User
@@ -122,7 +118,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                             </div>
                         </>
                     ) : (
-                        <TripPlanner user={user} />
+                        <TripPlanner />
                     )}
                 </div>
             </main>
