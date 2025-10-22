@@ -47,6 +47,11 @@ function Login({ onLoginSuccess }: LoginProps) {
         }
     }
 
+    const toggleMode = () => {
+        setIsLogin(!isLogin)
+        setError('')
+    }
+
     return (
         <div className="login-container">
             <div className="login-box">
@@ -90,10 +95,7 @@ function Login({ onLoginSuccess }: LoginProps) {
                 <div className="toggle-mode">
                     <button
                         type="button"
-                        onClick={() => {
-                            setIsLogin(!isLogin)
-                            setError('')
-                        }}
+                        onClick={toggleMode}
                         className="toggle-button"
                         disabled={loading}
                     >

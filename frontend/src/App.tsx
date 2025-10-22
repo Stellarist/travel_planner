@@ -51,8 +51,6 @@ function App() {
     )
   }
 
-  if (loading) return null
-
   return (
     <Routes>
       <Route path="/" element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Login onLoginSuccess={handleLoginSuccess} />} />

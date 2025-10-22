@@ -13,13 +13,30 @@ export function getApiUrl(path: string): string {
 }
 
 export const formatAmount = (amount: number): string => {
-  if (amount >= 10000) return (amount / 10000).toFixed(1) + '万'
-  return amount.toFixed(2)
+  return amount >= 10000 ? (amount / 10000).toFixed(1) + '万' : amount.toFixed(2)
 }
 
 export const formatDate = (dateString: string): string => {
   const d = new Date(dateString)
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+export const getDefaultDateRange = (days: number = 3) => {
+  const today = new Date()
+  const later = new Date(today)
+  later.setDate(today.getDate() + days)
+  return {
+    start: today.toISOString().split('T')[0],
+    end: later.toISOString().split('T')[0]
+  }
+}
+
+export const getTodayDate = () => new Date().toISOString().slice(0, 10)
+
+export const getDateDaysAgo = (days: number) => {
+  const date = new Date()
+  date.setDate(date.getDate() - days)
+  return date.toISOString().slice(0, 10)
 }
 
 export const buildUrl = (path: string, params?: Record<string, string | undefined>): string => {
@@ -51,7 +68,6 @@ export const apiPost = async (path: string, body: any) => {
   return res.json()
 }
 
-// Speech Recognition Hook
 type SpeechRecognitionOptions = {
   lang?: string
   onInterim?: (text: string) => void

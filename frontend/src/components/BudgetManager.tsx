@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import '../styles/common.css'
 import './TripPlanner.css'
 import './BudgetManager.css'
-import { apiPost, apiGet, formatAmount, useSpeechRecognition } from '../shared/utils'
+import { apiPost, apiGet, formatAmount, useSpeechRecognition, getTodayDate, getDateDaysAgo } from '../shared/utils'
 import type { Expense } from '../shared/types'
 import { CATEGORY_MAP, CATEGORY_COLORS, BUDGET_ITEMS_PER_PAGE, CATEGORY_NAMES } from '../shared/constants'
 
@@ -11,13 +11,11 @@ export default function BudgetManager() {
     const [category, setCategory] = useState('食物')
     const [amount, setAmount] = useState<number | ''>('')
     const [note, setNote] = useState('')
-    const [date, setDate] = useState<string>(new Date().toISOString().slice(0, 10))
+    const [date, setDate] = useState<string>(getTodayDate())
     const [isListening, setIsListening] = useState(false)
-    const today = new Date().toISOString().slice(0, 10)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString().slice(0, 10)
     const [filterCategory, setFilterCategory] = useState('')
-    const [filterFrom, setFilterFrom] = useState(thirtyDaysAgo)
-    const [filterTo, setFilterTo] = useState(today)
+    const [filterFrom, setFilterFrom] = useState(getDateDaysAgo(30))
+    const [filterTo, setFilterTo] = useState(getTodayDate())
     const [analysisQuery, setAnalysisQuery] = useState('')
     const [analysisResult, setAnalysisResult] = useState<string | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
@@ -29,43 +27,50 @@ export default function BudgetManager() {
     const autoSetFilters = (text: string) => {
         const lowerText = text.toLowerCase()
 
-        if (lowerText.includes('食物') || lowerText.includes('吃') || lowerText.includes('饭') || lowerText.includes('餐')) {
-            setFilterCategory('食物')
-        } else if (lowerText.includes('交通') || lowerText.includes('打车') || lowerText.includes('地铁') || lowerText.includes('公交')) {
-            setFilterCategory('交通')
-        } else if (lowerText.includes('住宿') || lowerText.includes('酒店') || lowerText.includes('住')) {
-            setFilterCategory('住宿')
-        } else if (lowerText.includes('购物') || lowerText.includes('买')) {
-            setFilterCategory('购物')
-        } else if (lowerText.includes('活动') || lowerText.includes('娱乐') || lowerText.includes('玩')) {
-            setFilterCategory('活动')
+        // 设置分类过滤器
+        const categoryKeywords: Record<string, string[]> = {
+            '食物': ['食物', '吃', '饭', '餐'],
+            '交通': ['交通', '打车', '地铁', '公交'],
+            '住宿': ['住宿', '酒店', '住'],
+            '购物': ['购物', '买'],
+            '活动': ['活动', '娱乐', '玩']
         }
 
-        const today = new Date()
-        if (lowerText.includes('一周') || lowerText.includes('7天') || lowerText.includes('七天') || lowerText.includes('最近一周')) {
-            const weekAgo = new Date(today.getTime() - 7 * 24 * 3600 * 1000)
-            setFilterFrom(weekAgo.toISOString().slice(0, 10))
-            setFilterTo(today.toISOString().slice(0, 10))
-        } else if (lowerText.includes('三天') || lowerText.includes('3天')) {
-            const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 3600 * 1000)
-            setFilterFrom(threeDaysAgo.toISOString().slice(0, 10))
-            setFilterTo(today.toISOString().slice(0, 10))
-        } else if (lowerText.includes('一个月') || lowerText.includes('30天') || lowerText.includes('三十天') || lowerText.includes('最近一个月')) {
-            const monthAgo = new Date(today.getTime() - 30 * 24 * 3600 * 1000)
-            setFilterFrom(monthAgo.toISOString().slice(0, 10))
-            setFilterTo(today.toISOString().slice(0, 10))
-        } else if (lowerText.includes('今天') || lowerText.includes('今日')) {
-            setFilterFrom(today.toISOString().slice(0, 10))
-            setFilterTo(today.toISOString().slice(0, 10))
-        } else if (lowerText.includes('昨天')) {
-            const yesterday = new Date(today.getTime() - 24 * 3600 * 1000)
-            setFilterFrom(yesterday.toISOString().slice(0, 10))
-            setFilterTo(yesterday.toISOString().slice(0, 10))
+        for (const [cat, keywords] of Object.entries(categoryKeywords)) {
+            if (keywords.some(kw => lowerText.includes(kw))) {
+                setFilterCategory(cat)
+                break
+            }
+        }
+
+        // 设置日期过滤器
+        const today = getTodayDate()
+        const dateRanges: Record<string, () => void> = {
+            '今天|今日': () => { setFilterFrom(today); setFilterTo(today) },
+            '昨天': () => {
+                const yesterday = getDateDaysAgo(1)
+                setFilterFrom(yesterday); setFilterTo(yesterday)
+            },
+            '一周|7天|七天|最近一周': () => {
+                setFilterFrom(getDateDaysAgo(7)); setFilterTo(today)
+            },
+            '三天|3天': () => {
+                setFilterFrom(getDateDaysAgo(3)); setFilterTo(today)
+            },
+            '一个月|30天|三十天|最近一个月': () => {
+                setFilterFrom(getDateDaysAgo(30)); setFilterTo(today)
+            }
+        }
+
+        for (const [pattern, setRange] of Object.entries(dateRanges)) {
+            if (pattern.split('|').some(p => lowerText.includes(p))) {
+                setRange()
+                break
+            }
         }
     }
 
     const { isListening: srListening, toggle, stop } = useSpeechRecognition({
-        onInterim: () => { },
         onFinal: (t: string) => {
             setAnalysisQuery(t)
             autoSetFilters(t)
@@ -75,17 +80,13 @@ export default function BudgetManager() {
 
     useEffect(() => {
         setIsListening(srListening)
-        if (srListening) {
-            setAnalysisQuery('')
-        }
+        if (srListening) setAnalysisQuery('')
     }, [srListening])
 
     useEffect(() => {
         if (shouldAutoApply) {
             setShouldAutoApply(false)
-            setTimeout(() => {
-                fetchList()
-            }, 100)
+            setTimeout(fetchList, 100)
         }
     }, [shouldAutoApply])
 
@@ -105,8 +106,13 @@ export default function BudgetManager() {
 
     const addExpense = async () => {
         if (!amount || Number(amount) <= 0) return
-        const noteValue = note.trim() || '消费'
-        const rec = { category, amount: Number(amount), currency: 'CNY', note: noteValue, date }
+        const rec = {
+            category,
+            amount: Number(amount),
+            currency: 'CNY',
+            note: note.trim() || '消费',
+            date
+        }
         const data = await apiPost('/api/expenses', rec)
         if (data.success && data.data) {
             fetchList()
@@ -147,30 +153,31 @@ export default function BudgetManager() {
 
     useEffect(() => { fetchList() }, [])
 
+    // 计算统计数据
     const totalsMap = new Map<string, number>()
     list.forEach(it => totalsMap.set(it.category, (totalsMap.get(it.category) || 0) + Number(it.amount || 0)))
-    const totalsArr = Array.from(totalsMap.entries())
-    const totalSum = totalsArr.reduce((s, [, v]) => s + v, 0) || 0
+    const totalSum = Array.from(totalsMap.values()).reduce((s, v) => s + v, 0) || 0
 
+    // 饼图数据处理
     const threshold = totalSum * 0.01
-    const mainItems: [string, number][] = []
-    let othersSum = 0
-    totalsArr.forEach(([k, v]) => {
-        if (v >= threshold) {
-            mainItems.push([k, v])
-        } else {
-            othersSum += v
-        }
-    })
-    if (othersSum > 0) {
-        mainItems.push(['其他(小额)', othersSum])
-    }
-    const pieData = mainItems.length > 0 ? mainItems : totalsArr
+    const tempData = Array.from(totalsMap.entries())
+        .reduce((acc, [k, v]) => {
+            if (v >= threshold) {
+                acc.main.push([k, v])
+            } else {
+                acc.othersSum += v
+            }
+            return acc
+        }, { main: [] as [string, number][], othersSum: 0 })
+
+    if (tempData.othersSum > 0) tempData.main.push(['其他(小额)', tempData.othersSum])
+    const pieData = tempData.main.length > 0 ? tempData.main : Array.from(totalsMap.entries())
 
     const totalPages = Math.ceil(list.length / BUDGET_ITEMS_PER_PAGE)
-    const startIndex = (currentPage - 1) * BUDGET_ITEMS_PER_PAGE
-    const endIndex = startIndex + BUDGET_ITEMS_PER_PAGE
-    const currentItems = list.slice(startIndex, endIndex)
+    const currentItems = list.slice(
+        (currentPage - 1) * BUDGET_ITEMS_PER_PAGE,
+        currentPage * BUDGET_ITEMS_PER_PAGE
+    )
 
     return (
         <div className="trip-planner-page">

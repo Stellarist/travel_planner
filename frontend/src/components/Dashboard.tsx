@@ -5,30 +5,25 @@ import type { DashboardProps } from '../shared/types'
 
 function Dashboard({ user, onLogout }: DashboardProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const toggleSidebar = () => { setIsSidebarOpen(!isSidebarOpen) }
-    const closeSidebar = () => { setIsSidebarOpen(false) }
-    const navigateToHome = () => { }
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
+    const closeSidebar = () => setIsSidebarOpen(false)
 
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
                 <div className="header-content">
-                    <div className="header-text" onClick={navigateToHome} style={{ cursor: 'pointer' }}>
+                    <div className="header-text">
                         <h1>旅行规划助手</h1>
                         <p className="header-subtitle">开始规划您的下一次精彩旅程</p>
                     </div>
-                    <button className="menu-button" onClick={toggleSidebar} aria-label="打开菜单"                    >
+                    <button className="menu-button" onClick={toggleSidebar} aria-label="打开菜单">
                         <span className="menu-icon">☰</span>
                     </button>
                 </div>
             </header>
 
-            { }
             {isSidebarOpen && (
-                <div
-                    className="sidebar-overlay"
-                    onClick={closeSidebar}
-                />
+                <div className="sidebar-overlay" onClick={closeSidebar} />
             )}
 
             { }
@@ -66,36 +61,31 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
             <main className="dashboard-main">
                 <div className="content-wrapper">
-                    { }
-                    {(
-                        <>
-                            <div className="feature-cards">
-                                <Link to="/planner" className="feature-card" style={{ textDecoration: 'none' }}>
-                                    <div className="card-icon">🗺️</div>
-                                    <h3>规划行程</h3>
-                                    <p>创建详细的旅行计划，安排每日行程</p>
-                                </Link>
+                    <div className="feature-cards">
+                        <Link to="/planner" className="feature-card" style={{ textDecoration: 'none' }}>
+                            <div className="card-icon">🗺️</div>
+                            <h3>规划行程</h3>
+                            <p>创建详细的旅行计划，安排每日行程</p>
+                        </Link>
 
-                                <div className="feature-card">
-                                    <div className="card-icon">📍</div>
-                                    <h3>探索景点</h3>
-                                    <p>发现热门景点和隐藏的宝藏</p>
-                                </div>
+                        <div className="feature-card">
+                            <div className="card-icon">📍</div>
+                            <h3>探索景点</h3>
+                            <p>发现热门景点和隐藏的宝藏</p>
+                        </div>
 
-                                <Link to="/budget" className="feature-card" style={{ textDecoration: 'none' }}>
-                                    <div className="card-icon">💰</div>
-                                    <h3>预算管理</h3>
-                                    <p>追踪旅行开支，控制预算</p>
-                                </Link>
+                        <Link to="/budget" className="feature-card" style={{ textDecoration: 'none' }}>
+                            <div className="card-icon">💰</div>
+                            <h3>预算管理</h3>
+                            <p>追踪旅行开支，控制预算</p>
+                        </Link>
 
-                                <div className="feature-card">
-                                    <div className="card-icon">📝</div>
-                                    <h3>旅行日记</h3>
-                                    <p>记录旅途中的美好时刻</p>
-                                </div>
-                            </div>
-                        </>
-                    )}
+                        <div className="feature-card">
+                            <div className="card-icon">📝</div>
+                            <h3>旅行日记</h3>
+                            <p>记录旅途中的美好时刻</p>
+                        </div>
+                    </div>
                 </div>
             </main>
         </div>

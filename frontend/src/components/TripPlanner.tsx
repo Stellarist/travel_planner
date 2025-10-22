@@ -1,24 +1,12 @@
 import { useState, useEffect } from 'react';
-import { getApiUrl } from '../shared/utils';
+import { getApiUrl, useSpeechRecognition, getDefaultDateRange, formatDate } from '../shared/utils';
 import '../styles/common.css';
 import './TripPlanner.css';
-import { useSpeechRecognition } from '../shared/utils';
 import type { TripPlan } from '../shared/types';
 import { AVAILABLE_PREFERENCES } from '../shared/constants';
 
 export default function TripPlanner() {
-    const getDefaultDates = () => {
-        const today = new Date();
-        const threeDaysLater = new Date();
-        threeDaysLater.setDate(today.getDate() + 3);
-
-        return {
-            start: today.toISOString().split('T')[0],
-            end: threeDaysLater.toISOString().split('T')[0]
-        };
-    };
-
-    const defaultDates = getDefaultDates();
+    const defaultDates = getDefaultDateRange(3)
 
     const [destination, setDestination] = useState('');
     const [startDate, setStartDate] = useState(defaultDates.start);
@@ -34,16 +22,14 @@ export default function TripPlanner() {
     const [recognizedText, setRecognizedText] = useState('');
 
     const { isListening: srListening, recognizedText: srText, toggle } = useSpeechRecognition({
-        onFinal: (t: string) => { setRecognizedText(t); parseVoiceInput(t); },
+        onFinal: (t: string) => {
+            setRecognizedText(t);
+            parseVoiceInput(t);
+        },
     });
 
-    useEffect(() => {
-        setIsListening(srListening);
-    }, [srListening]);
-
-    useEffect(() => {
-        setRecognizedText(srText);
-    }, [srText]);
+    useEffect(() => setIsListening(srListening), [srListening]);
+    useEffect(() => setRecognizedText(srText), [srText]);
 
     const parseVoiceInput = (text: string) => {
         console.log('语音输入:', text);
@@ -155,25 +141,23 @@ export default function TripPlanner() {
     };
 
     const togglePreference = (pref: string) => {
-        if (preferences.includes(pref)) {
-            setPreferences(preferences.filter(p => p !== pref));
-        } else {
-            setPreferences([...preferences, pref]);
-        }
+        setPreferences(prev =>
+            prev.includes(pref) ? prev.filter(p => p !== pref) : [...prev, pref]
+        );
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setIsLoading(true);
 
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('请先登录');
+            return;
+        }
+
+        setIsLoading(true);
         try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                setError('请先登录');
-                setIsLoading(false);
-                return;
-            }
 
             const response = await fetch(getApiUrl('/api/trips/plan'), {
                 method: 'POST',
@@ -206,16 +190,8 @@ export default function TripPlanner() {
         }
     };
 
-    const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        return `${year}-${month}-${day}`;
-    };
-
     const resetForm = () => {
-        const newDefaultDates = getDefaultDates();
+        const newDefaultDates = getDefaultDateRange(3);
         setDestination('');
         setStartDate(newDefaultDates.start);
         setEndDate(newDefaultDates.end);
@@ -254,8 +230,6 @@ export default function TripPlanner() {
                                     <span>{recognizedText}</span>
                                 </div>
                             )}
-
-                            { }
                         </div>
 
                         <div className="form-group">
