@@ -47,7 +47,6 @@
     font-weight: normal;
 }
 
-/* 汉堡菜单按钮 - 在右边 */
 .menu-button {
     background: rgba(255, 255, 255, 0.2);
     color: white;
@@ -73,7 +72,6 @@
     line-height: 1;
 }
 
-/* 侧边栏遮罩层 */
 .sidebar-overlay {
     position: fixed;
     top: 0;
@@ -95,7 +93,6 @@
     }
 }
 
-/* 侧边栏 */
 .sidebar {
     position: fixed;
     top: 0;
@@ -132,7 +129,6 @@
     padding: 30px 20px;
 }
 
-/* 用户头像 */
 .user-avatar {
     display: flex;
     justify-content: center;
@@ -153,7 +149,6 @@
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-/* 用户信息 */
 .sidebar-user-info {
     background: #f8f9fa;
     border-radius: 12px;
@@ -185,7 +180,6 @@
     font-weight: 600;
 }
 
-/* 侧边栏底部 */
 .sidebar-footer {
     border-top: 1px solid #e0e0e0;
     padding-top: 20px;

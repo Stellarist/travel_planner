@@ -1,12 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { getApiUrl } from '../config'
+import { getApiUrl } from '../shared/config'
 import '../shared/common.css'
 import './Login.css'
-
-interface LoginProps {
-    onLoginSuccess: (user: any) => void
-}
+import type { LoginProps } from '../shared/types'
 
 function Login({ onLoginSuccess }: LoginProps) {
     const [isLogin, setIsLogin] = useState(true)

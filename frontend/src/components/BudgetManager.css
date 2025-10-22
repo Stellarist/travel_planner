@@ -1,4 +1,3 @@
-/* Voice recognition section styled like Planner */
 .budget-layout .voice-row {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
@@ -83,7 +82,6 @@
     margin-top: 16px
 }
 
-/* Budget layout styles */
 .budget-layout .top-row.add-row {
     display: flex;
     gap: 12px;

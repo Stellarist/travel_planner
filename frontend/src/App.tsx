@@ -5,7 +5,7 @@ import Dashboard from './components/Dashboard'
 import TripPlanner from './components/TripPlanner'
 import BudgetManager from './components/BudgetManager'
 import './App.css'
-import type { User } from './types'
+import type { User } from './shared/types'
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -13,7 +13,6 @@ function App() {
 
   useEffect(() => {
     const initApp = async () => {
-      // 检查本地存储
       const storedUser = localStorage.getItem('user')
       const storedToken = localStorage.getItem('token')
 
@@ -59,7 +58,6 @@ function App() {
       <Route path="/" element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Login onLoginSuccess={handleLoginSuccess} />} />
       <Route path="/planner" element={user ? <TripPlanner /> : <Navigate to="/" replace />} />
       <Route path="/budget" element={user ? <BudgetManager /> : <Navigate to="/" replace />} />
-      {/* catch-all: redirect to root */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

@@ -1,11 +1,6 @@
-import configJson from './config.json'
+import configJson from '../config.json'
+import type { Config } from './types'
 
-interface Config {
-    apiBaseUrl: string
-    backendBaseUrl?: string
-}
-
-// 在构建时静态加载配置，移除运行时 fetch 依赖
 const config: Config = {
     apiBaseUrl:
         (configJson as any).apiBaseUrl || (configJson as any).backendBaseUrl || 'http://127.0.0.1:3000',

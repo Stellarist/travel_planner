@@ -1,22 +1,18 @@
 .trip-planner {
     width: 100%;
     max-width: 1200px;
-    /* desktop-friendly max width */
     margin: 0 auto;
     padding: 20px 20px 10px 20px;
 }
 
-/* 页面级容器，覆盖深色 body 背景，使 planner 区域为浅色 */
 .trip-planner-page {
     min-height: 100vh;
     display: flex;
     align-items: flex-start;
     justify-content: flex-start;
     padding: 12px 16px;
-    /* 缩小顶部空白以靠近页面顶部 */
     margin-top: 0;
     background: #f6f8fb;
-    /* 与 dashboard 轻色调保持一致 */
 }
 
 .planner-header {
@@ -35,7 +31,6 @@
     font-size: 14px;
 }
 
-/* 语音输入区域 */
 .voice-input-section {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
@@ -88,7 +83,6 @@
     opacity: 0.9;
 }
 
-/* 表单样式 */
 .planner-form {
     background: white;
     padding: 18px;
@@ -96,21 +90,17 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* 通用表单样式已移动到 ../shared/common.css */
-
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
 
-/* BudgetManager-specific: show three equal columns (category, amount, date) */
 .budget-form .form-row {
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
 }
 
-/* Make inputs/selects/dates inside budget form have equal height and box sizing */
 .budget-form .form-group input,
 .budget-form .form-group select,
 .budget-form .form-group input[type="date"] {
@@ -121,26 +111,19 @@
     line-height: 20px;
 }
 
-/* make form groups slightly more compact when placed in a row */
 .form-row .form-group {
     margin-bottom: 8px;
 }
 
-/* make the special needs textarea a compact, single-line input: no scroll, smaller font */
 .special-needs {
     height: 38px;
-    /* comfortable single-line height */
     padding: 8px 10px;
     resize: none;
-    /* prevent user resizing */
     overflow: hidden;
-    /* remove scroll bar */
     line-height: 18px;
     font-size: 13px;
-    /* slightly larger but still compact */
 }
 
-/* 偏好标签 */
 .preferences-grid {
     display: flex;
     flex-wrap: wrap;
@@ -169,13 +152,6 @@
     border-color: transparent;
 }
 
-/* 提交按钮 */
-/* 提交按钮样式改由 ../shared/common.css 提供 */
-
-/* 错误消息 */
-/* 错误消息样式改由 ../shared/common.css 提供 */
-
-/* 行程结果 */
 .trip-result {
     background: white;
     padding: 18px;
@@ -213,7 +189,6 @@
     color: white;
 }
 
-/* 行程摘要 */
 .trip-summary {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 12px;
@@ -247,7 +222,6 @@
     line-height: 1.6;
 }
 
-/* 行程卡片 */
 .itinerary-container {
     display: grid;
     grid-template-columns: 1fr;
@@ -289,7 +263,6 @@
     font-weight: bold;
 }
 
-/* 活动列表 */
 .activities-list {
     padding: 12px;
 }
@@ -367,7 +340,6 @@
     color: #888;
 }
 
-/* 住宿信息 */
 .accommodation {
     background: #f8f9fa;
     padding: 10px 14px;
@@ -376,7 +348,6 @@
     border-top: 1px solid #eaeaea;
 }
 
-/* 大屏幕下将行程卡片两列显示，减少纵向长度 */
 @media (min-width: 1100px) {
     .itinerary-container {
         grid-template-columns: 1fr 1fr;
@@ -384,7 +355,6 @@
     }
 }
 
-/* 小屏幕保持单列且适当间距 */
 @media (max-width: 600px) {
     .trip-planner {
         padding: 20px;
@@ -395,7 +365,6 @@
         padding: 14px;
     }
 
-    /* ensure form-row stacks on small screens */
     .form-row {
         grid-template-columns: 1fr;
     }

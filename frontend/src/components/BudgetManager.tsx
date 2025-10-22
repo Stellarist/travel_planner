@@ -3,16 +3,9 @@ import speechRecognition from '../shared/speechRecognition'
 import '../shared/common.css'
 import './TripPlanner.css'
 import './BudgetManager.css'
-import { getApiUrl } from '../config'
-
-interface Expense {
-    id?: string
-    category: string
-    amount: number
-    currency?: string
-    note?: string
-    createdAt?: string
-}
+import { apiPost, apiGet, formatAmount } from '../shared/utils'
+import type { Expense } from '../shared/types'
+import { CATEGORY_MAP, CATEGORY_COLORS, BUDGET_ITEMS_PER_PAGE, CATEGORY_NAMES } from '../shared/constants'
 
 export default function BudgetManager() {
     const [list, setList] = useState<Expense[]>([])
@@ -29,51 +22,14 @@ export default function BudgetManager() {
     const [analysisQuery, setAnalysisQuery] = useState('')
     const [analysisResult, setAnalysisResult] = useState<string | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 5
     const [shouldAutoApply, setShouldAutoApply] = useState(false)
 
-    // Category name mapping
-    const categoryMap: Record<string, string> = {
-        'Meals': '食物',
-        'Transport': '交通',
-        'Accommodation': '住宿',
-        'Activities': '活动',
-        'Shopping': '购物',
-        'Other': '其他'
-    }
-
-    const getCategoryName = (cat: string) => categoryMap[cat] || cat
-
-    // Fixed color mapping for each category
-    const categoryColors: Record<string, string> = {
-        '食物': '#ff7b7b',
-        'Meals': '#ff7b7b',
-        '交通': '#ffa94d',
-        'Transport': '#ffa94d',
-        '住宿': '#667eea',
-        'Accommodation': '#667eea',
-        '活动': '#7bd389',
-        'Activities': '#7bd389',
-        '购物': '#764ba2',
-        'Shopping': '#764ba2',
-        '其他': '#9ad0ff',
-        'Other': '#9ad0ff',
-        '其他(小额)': '#c0c0c0'
-    }
-
-    const getCategoryColor = (cat: string) => categoryColors[cat] || '#999'
-
-    const formatAmount = (amount: number) => {
-        if (amount >= 10000) {
-            return (amount / 10000).toFixed(1) + '万'
-        }
-        return amount.toFixed(2)
-    }
+    const getCategoryName = (cat: string) => CATEGORY_MAP[cat] || cat
+    const getCategoryColor = (cat: string) => CATEGORY_COLORS[cat] || '#999'
 
     const autoSetFilters = (text: string) => {
         const lowerText = text.toLowerCase()
-        
-        // 识别种类
+
         if (lowerText.includes('食物') || lowerText.includes('吃') || lowerText.includes('饭') || lowerText.includes('餐')) {
             setFilterCategory('食物')
         } else if (lowerText.includes('交通') || lowerText.includes('打车') || lowerText.includes('地铁') || lowerText.includes('公交')) {
@@ -85,8 +41,7 @@ export default function BudgetManager() {
         } else if (lowerText.includes('活动') || lowerText.includes('娱乐') || lowerText.includes('玩')) {
             setFilterCategory('活动')
         }
-        
-        // 识别时间范围
+
         const today = new Date()
         if (lowerText.includes('一周') || lowerText.includes('7天') || lowerText.includes('七天') || lowerText.includes('最近一周')) {
             const weekAgo = new Date(today.getTime() - 7 * 24 * 3600 * 1000)
@@ -113,28 +68,22 @@ export default function BudgetManager() {
     const { isListening: srListening, toggle, stop } = speechRecognition({
         onInterim: () => { },
         onFinal: (t) => {
-            // Set the query text (replace, not append)
             setAnalysisQuery(t)
-            // Auto set filters based on voice content
             autoSetFilters(t)
-            // Mark that we should auto-apply filters
             setShouldAutoApply(true)
         },
     })
 
-    useEffect(() => { 
+    useEffect(() => {
         setIsListening(srListening)
-        // Clear text box when starting new recording
         if (srListening) {
             setAnalysisQuery('')
         }
     }, [srListening])
 
-    // Auto-apply filters after voice recognition
     useEffect(() => {
         if (shouldAutoApply) {
             setShouldAutoApply(false)
-            // Small delay to ensure state updates are complete
             setTimeout(() => {
                 fetchList()
             }, 100)
@@ -159,15 +108,8 @@ export default function BudgetManager() {
         if (!amount || Number(amount) <= 0) return
         const noteValue = note.trim() || '消费'
         const rec = { category, amount: Number(amount), currency: 'CNY', note: noteValue, date }
-        const token = localStorage.getItem('token')
-        const res = await fetch(getApiUrl('/api/expenses'), {
-            method: 'POST', headers: {
-                'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`
-            }, body: JSON.stringify(rec)
-        })
-        const data = await res.json()
+        const data = await apiPost('/api/expenses', rec)
         if (data.success && data.data) {
-            // Refresh the list to update pie chart
             fetchList()
             setAmount('')
             setNote('')
@@ -175,17 +117,12 @@ export default function BudgetManager() {
     }
 
     const fetchList = async () => {
-        const token = localStorage.getItem('token')
-        // build query params for filters
-        const params = new URLSearchParams()
-        if (filterCategory) params.set('category', filterCategory)
-        if (filterFrom) params.set('from', filterFrom)
-        if (filterTo) params.set('to', filterTo)
-        const url = getApiUrl('/api/expenses') + (params.toString() ? ('?' + params.toString()) : '')
-        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
-        const data = await res.json()
+        const params: Record<string, string | undefined> = {}
+        if (filterCategory) params.category = filterCategory
+        if (filterFrom) params.from = filterFrom
+        if (filterTo) params.to = filterTo
+        const data = await apiGet('/api/expenses', params)
         if (data.success) {
-            // Sort by date descending (newest first)
             const sorted = (data.data || []).sort((a: Expense, b: Expense) => {
                 const dateA = new Date(a.createdAt || 0).getTime()
                 const dateB = new Date(b.createdAt || 0).getTime()
@@ -197,31 +134,25 @@ export default function BudgetManager() {
     }
 
     const analyze = async (useQuery = false) => {
-        const token = localStorage.getItem('token')
-        const params = new URLSearchParams()
-        if (filterCategory) params.set('category', filterCategory)
-        if (filterFrom) params.set('from', filterFrom)
-        if (filterTo) params.set('to', filterTo)
-        if (useQuery && analysisQuery) params.set('q', analysisQuery)
-        const url = getApiUrl('/api/expenses/analyze') + (params.toString() ? ('?' + params.toString()) : '')
-        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
-        const data = await res.json()
+        const params: Record<string, string | undefined> = {}
+        if (filterCategory) params.category = filterCategory
+        if (filterFrom) params.from = filterFrom
+        if (filterTo) params.to = filterTo
+        if (useQuery && analysisQuery) params.q = analysisQuery
+        const data = await apiGet('/api/expenses/analyze', params)
         if (data.success) {
             setAnalysisResult(String(data.data.analysis))
-            // stop speech recognition if active
             if (srListening) stop()
         }
     }
 
     useEffect(() => { fetchList() }, [])
 
-    // precompute totals per category for summary and pie
     const totalsMap = new Map<string, number>()
     list.forEach(it => totalsMap.set(it.category, (totalsMap.get(it.category) || 0) + Number(it.amount || 0)))
     const totalsArr = Array.from(totalsMap.entries())
     const totalSum = totalsArr.reduce((s, [, v]) => s + v, 0) || 0
 
-    // Group small slices (< 1%) into "其他(小额)"
     const threshold = totalSum * 0.01
     const mainItems: [string, number][] = []
     let othersSum = 0
@@ -237,10 +168,9 @@ export default function BudgetManager() {
     }
     const pieData = mainItems.length > 0 ? mainItems : totalsArr
 
-    // Pagination
-    const totalPages = Math.ceil(list.length / itemsPerPage)
-    const startIndex = (currentPage - 1) * itemsPerPage
-    const endIndex = startIndex + itemsPerPage
+    const totalPages = Math.ceil(list.length / BUDGET_ITEMS_PER_PAGE)
+    const startIndex = (currentPage - 1) * BUDGET_ITEMS_PER_PAGE
+    const endIndex = startIndex + BUDGET_ITEMS_PER_PAGE
     const currentItems = list.slice(startIndex, endIndex)
 
     return (
@@ -252,23 +182,18 @@ export default function BudgetManager() {
                 </div>
 
                 <div className="planner-form budget-layout">
-                    {/* First line: compact add row (消费事件 种类 金额 日期 添加) */}
+                    { }
                     <div className="top-row add-row">
                         <input value={note} onChange={e => setNote(e.target.value)} placeholder="消费事件" />
                         <select value={category} onChange={e => setCategory(e.target.value)}>
-                            <option>食物</option>
-                            <option>交通</option>
-                            <option>住宿</option>
-                            <option>购物</option>
-                            <option>活动</option>
-                            <option>其他</option>
+                            {CATEGORY_NAMES.map(cat => <option key={cat}>{cat}</option>)}
                         </select>
                         <input type="number" value={amount as any} onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="金额" />
                         <input type="date" value={date} onChange={e => setDate(e.target.value)} placeholder="日期" />
                         <button className="submit-button" onClick={addExpense}>添加</button>
                     </div>
 
-                    {/* Voice recognition block similar to Planner's top box */}
+                    { }
                     <div className="voice-row">
                         <input
                             className="analysis-input"
@@ -284,7 +209,7 @@ export default function BudgetManager() {
                         </div>
                     </div>
 
-                    {/* Main area: single box with filter top-left, list bottom-left, pie chart right */}
+                    { }
                     <div className="budget-main-box">
                         <div className="left-section">
                             <div className="filter-section">
@@ -292,12 +217,7 @@ export default function BudgetManager() {
                                 <div className="filter-row">
                                     <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
                                         <option value="">全部种类</option>
-                                        <option>食物</option>
-                                        <option>交通</option>
-                                        <option>住宿</option>
-                                        <option>购物</option>
-                                        <option>活动</option>
-                                        <option>其他</option>
+                                        {CATEGORY_NAMES.map(cat => <option key={cat}>{cat}</option>)}
                                     </select>
                                     <input type="date" value={filterFrom} onChange={e => handleFilterFromChange(e.target.value)} />
                                     <input type="date" value={filterTo} onChange={e => handleFilterToChange(e.target.value)} />

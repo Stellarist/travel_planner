@@ -1,38 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getApiUrl } from '../config';
+import { getApiUrl } from '../shared/config';
 import '../shared/common.css';
 import './TripPlanner.css';
 import speechRecognition from '../shared/speechRecognition';
-
-interface Activity {
-    time: string;
-    type: string;
-    name: string;
-    location: string;
-    duration: string;
-    cost: number;
-    description: string;
-    tips: string;
-}
-
-interface DayItinerary {
-    day: number;
-    date: string;
-    activities: Activity[];
-    accommodation: string;
-    dailyCost: number;
-}
-
-interface TripPlan {
-    id: string;
-    destination: string;
-    startDate: string;
-    endDate: string;
-    itinerary: DayItinerary[];
-    totalCost: number;
-    summary: string;
-    createdAt: string;
-}
+import type { TripPlan } from '../shared/types';
+import { AVAILABLE_PREFERENCES } from '../shared/constants';
 
 export default function TripPlanner() {
     const getDefaultDates = () => {
@@ -61,14 +33,10 @@ export default function TripPlanner() {
     const [error, setError] = useState('');
     const [recognizedText, setRecognizedText] = useState('');
 
-    const availablePreferences = ['美食', '动漫', '亲子', '历史', '自然', '购物', '冒险'];
-    // use the speech recognition hook
     const { isListening: srListening, recognizedText: srText, toggle } = speechRecognition({
-        onInterim: (t) => setRecognizedText(t),
-        onFinal: (t) => { setRecognizedText(t); parseVoiceInput(t); },
+        onFinal: (t: string) => { setRecognizedText(t); parseVoiceInput(t); },
     });
 
-    // sync hook state into component state using effect
     useEffect(() => {
         setIsListening(srListening);
     }, [srListening]);
@@ -77,11 +45,9 @@ export default function TripPlanner() {
         setRecognizedText(srText);
     }, [srText]);
 
-    // 解析语音输入
     const parseVoiceInput = (text: string) => {
         console.log('语音输入:', text);
 
-        // helper: convert simple Chinese numerals (supports 零一二三四五六七八九十百千万)
         const chineseToNumber = (cn: string): number | null => {
             if (!cn) return null;
             const map: any = { 零: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
@@ -102,36 +68,29 @@ export default function TripPlanner() {
                     section += (number || 1) * 100;
                     number = 0;
                 } else if (ch === '十') {
-                    // handle 十 or 二十 etc.
                     section += (number || 1) * 10;
                     number = 0;
                 } else if (map.hasOwnProperty(ch)) {
                     number = map[ch];
                 } else {
-                    // unknown char
                     return null;
                 }
             }
             return result + section + number;
         };
 
-        // ------------------ 目的地 ------------------
-        // 支持表达：去 日本 / 到 东京 / 想去大阪 等，匹配后面直到遇到天/预算/带/和/，等关键词
         const destRegex = /(去|到|想去|我要去|想去到)\s*([A-Za-z0-9\u4e00-\u9fa5·\s]{1,30}?)(?=\s|\d|天|日|预算|带|和|，|,|。|$)/i;
         const destMatch = text.match(destRegex);
         if (destMatch && destMatch[2]) {
-            // trim whitespace and punctuation
             const dest = destMatch[2].trim().replace(/[，,。\.\s]+$/, '');
             if (dest) setDestination(dest);
         } else {
-            // 备选：有时用户可能只说目的地，例如 "日本" 单词
             const lonePlace = text.match(/^[\s]*(?:我想去|我要去|去|到)?\s*([A-Za-z0-9\u4e00-\u9fa5·]{2,30})[\s,，。]?/i);
             if (lonePlace && lonePlace[1]) {
                 setDestination(lonePlace[1].trim());
             }
         }
 
-        // ------------------ 天数 ------------------
         const daysRegex = /(\d+)\s*天|([一二三四五六七八九十百零]+)\s*天/;
         const daysMatch = text.match(daysRegex);
         if (daysMatch && startDate) {
@@ -149,8 +108,6 @@ export default function TripPlanner() {
             }
         }
 
-        // ------------------ 预算 ------------------
-        // 支持：预算 10000 / 预算 1 万 / 预算一万 / 预算 10000 元 / 10000 预算
         let budgetValue: number | null = null;
         const budRegex1 = /预算\s*([0-9]+(?:\.[0-9]+)?)(?:\s*(万|万元|元))?/i;
         const budRegex2 = /([0-9]+(?:\.[0-9]+)?)\s*(万|万元|元)?\s*预算/i;
@@ -164,7 +121,6 @@ export default function TripPlanner() {
             if (unit && unit.includes('万')) {
                 budgetValue = num * 10000;
             } else {
-                // treat as RMB
                 budgetValue = num;
             }
         } else {
@@ -183,9 +139,8 @@ export default function TripPlanner() {
             setBudget(budgetValue.toString());
         }
 
-        // 提取偏好
         const newPrefs: string[] = [];
-        availablePreferences.forEach(pref => {
+        AVAILABLE_PREFERENCES.forEach(pref => {
             if (text.includes(pref)) {
                 newPrefs.push(pref);
             }
@@ -194,13 +149,11 @@ export default function TripPlanner() {
             setPreferences(prev => [...new Set([...prev, ...newPrefs])]);
         }
 
-        // 提取特殊需求
         if (text.includes('带孩子') || text.includes('亲子')) {
             setSpecialNeeds(prev => prev ? prev + '、带孩子' : '带孩子');
         }
     };
 
-    // 切换偏好
     const togglePreference = (pref: string) => {
         if (preferences.includes(pref)) {
             setPreferences(preferences.filter(p => p !== pref));
@@ -209,7 +162,6 @@ export default function TripPlanner() {
         }
     };
 
-    // 提交表单
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -254,7 +206,6 @@ export default function TripPlanner() {
         }
     };
 
-    // 格式化日期为 Y-M-D 格式
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const year = date.getFullYear();
@@ -263,7 +214,6 @@ export default function TripPlanner() {
         return `${year}-${month}-${day}`;
     };
 
-    // 重置表单
     const resetForm = () => {
         const newDefaultDates = getDefaultDates();
         setDestination('');
@@ -305,7 +255,7 @@ export default function TripPlanner() {
                                 </div>
                             )}
 
-                            {/* 仅显示识别结果，解析由 parseVoiceInput 处理 */}
+                            { }
                         </div>
 
                         <div className="form-group">
@@ -369,7 +319,7 @@ export default function TripPlanner() {
                             <div className="form-group">
                                 <label>旅行偏好</label>
                                 <div className="preferences-grid">
-                                    {availablePreferences.map(pref => (
+                                    {AVAILABLE_PREFERENCES.map(pref => (
                                         <button
                                             key={pref}
                                             type="button"

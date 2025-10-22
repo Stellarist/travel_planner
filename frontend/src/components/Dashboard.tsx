@@ -1,29 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import './Dashboard.css'
-import type { User } from '../types'
-
-interface DashboardProps {
-    user: User
-    onLogout: () => void
-}
+import type { DashboardProps } from '../shared/types'
 
 function Dashboard({ user, onLogout }: DashboardProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    // routing will handle views; remove internal currentView state
-
-    const toggleSidebar = () => {
-        setIsSidebarOpen(!isSidebarOpen)
-    }
-
-    const closeSidebar = () => {
-        setIsSidebarOpen(false)
-    }
-
-    const navigateToHome = () => {
-        // navigate by clicking header (Link could be used externally)
-        // we'll keep a no-op handler for header click
-    }
+    const toggleSidebar = () => { setIsSidebarOpen(!isSidebarOpen) }
+    const closeSidebar = () => { setIsSidebarOpen(false) }
+    const navigateToHome = () => { }
 
     return (
         <div className="dashboard-container">
@@ -33,17 +17,13 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                         <h1>旅行规划助手</h1>
                         <p className="header-subtitle">开始规划您的下一次精彩旅程</p>
                     </div>
-                    <button
-                        className="menu-button"
-                        onClick={toggleSidebar}
-                        aria-label="打开菜单"
-                    >
+                    <button className="menu-button" onClick={toggleSidebar} aria-label="打开菜单"                    >
                         <span className="menu-icon">☰</span>
                     </button>
                 </div>
             </header>
 
-            {/* 侧边栏遮罩层 */}
+            { }
             {isSidebarOpen && (
                 <div
                     className="sidebar-overlay"
@@ -51,7 +31,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                 />
             )}
 
-            {/* 侧边栏 */}
+            { }
             <div className={`sidebar ${isSidebarOpen ? 'sidebar-open' : ''}`}>
                 <div className="sidebar-header">
                     <h2>账户信息</h2>
@@ -86,9 +66,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
             <main className="dashboard-main">
                 <div className="content-wrapper">
-                    {
-                        /* show home cards; planner is a separate route */
-                    }
+                    { }
                     {(
                         <>
                             <div className="feature-cards">

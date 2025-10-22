@@ -46,9 +46,7 @@ export default function speechRecognition(opts: Options = {}) {
                     onFinal && onFinal(final)
                     try {
                         recognition.stop()
-                    } catch (e) {
-                        // ignore
-                    }
+                    } catch (e) { }
                 }
             }
 
@@ -63,9 +61,7 @@ export default function speechRecognition(opts: Options = {}) {
 
             recognitionRef.current = recognition
             recognition.start()
-        } catch (e) {
-            // ignore startup errors
-        }
+        } catch (e) { }
     }
 
     const stop = () => {
@@ -73,9 +69,7 @@ export default function speechRecognition(opts: Options = {}) {
         if (r && typeof r.stop === 'function') {
             try {
                 r.stop()
-            } catch (e) {
-                // ignore
-            }
+            } catch (e) { }
         }
         recognitionRef.current = null
         setIsListening(false)
@@ -91,9 +85,7 @@ export default function speechRecognition(opts: Options = {}) {
             if (recognitionRef.current && typeof recognitionRef.current.stop === 'function') {
                 try {
                     recognitionRef.current.stop()
-                } catch (e) {
-                    // ignore
-                }
+                } catch (e) { }
             }
             recognitionRef.current = null
         }
