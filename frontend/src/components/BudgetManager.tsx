@@ -30,6 +30,7 @@ export default function BudgetManager() {
     const [analysisResult, setAnalysisResult] = useState<string | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 5
+    const [shouldAutoApply, setShouldAutoApply] = useState(false)
 
     // Category name mapping
     const categoryMap: Record<string, string> = {
@@ -69,15 +70,76 @@ export default function BudgetManager() {
         return amount.toFixed(2)
     }
 
+    const autoSetFilters = (text: string) => {
+        const lowerText = text.toLowerCase()
+        
+        // 识别种类
+        if (lowerText.includes('食物') || lowerText.includes('吃') || lowerText.includes('饭') || lowerText.includes('餐')) {
+            setFilterCategory('食物')
+        } else if (lowerText.includes('交通') || lowerText.includes('打车') || lowerText.includes('地铁') || lowerText.includes('公交')) {
+            setFilterCategory('交通')
+        } else if (lowerText.includes('住宿') || lowerText.includes('酒店') || lowerText.includes('住')) {
+            setFilterCategory('住宿')
+        } else if (lowerText.includes('购物') || lowerText.includes('买')) {
+            setFilterCategory('购物')
+        } else if (lowerText.includes('活动') || lowerText.includes('娱乐') || lowerText.includes('玩')) {
+            setFilterCategory('活动')
+        }
+        
+        // 识别时间范围
+        const today = new Date()
+        if (lowerText.includes('一周') || lowerText.includes('7天') || lowerText.includes('七天') || lowerText.includes('最近一周')) {
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 3600 * 1000)
+            setFilterFrom(weekAgo.toISOString().slice(0, 10))
+            setFilterTo(today.toISOString().slice(0, 10))
+        } else if (lowerText.includes('三天') || lowerText.includes('3天')) {
+            const threeDaysAgo = new Date(today.getTime() - 3 * 24 * 3600 * 1000)
+            setFilterFrom(threeDaysAgo.toISOString().slice(0, 10))
+            setFilterTo(today.toISOString().slice(0, 10))
+        } else if (lowerText.includes('一个月') || lowerText.includes('30天') || lowerText.includes('三十天') || lowerText.includes('最近一个月')) {
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 3600 * 1000)
+            setFilterFrom(monthAgo.toISOString().slice(0, 10))
+            setFilterTo(today.toISOString().slice(0, 10))
+        } else if (lowerText.includes('今天') || lowerText.includes('今日')) {
+            setFilterFrom(today.toISOString().slice(0, 10))
+            setFilterTo(today.toISOString().slice(0, 10))
+        } else if (lowerText.includes('昨天')) {
+            const yesterday = new Date(today.getTime() - 24 * 3600 * 1000)
+            setFilterFrom(yesterday.toISOString().slice(0, 10))
+            setFilterTo(yesterday.toISOString().slice(0, 10))
+        }
+    }
+
     const { isListening: srListening, toggle, stop } = speechRecognition({
         onInterim: () => { },
         onFinal: (t) => {
-            // when using voice for analysis, append to analysisQuery
-            setAnalysisQuery(prev => prev ? prev + ' ' + t : t)
+            // Set the query text (replace, not append)
+            setAnalysisQuery(t)
+            // Auto set filters based on voice content
+            autoSetFilters(t)
+            // Mark that we should auto-apply filters
+            setShouldAutoApply(true)
         },
     })
 
-    useEffect(() => { setIsListening(srListening) }, [srListening])
+    useEffect(() => { 
+        setIsListening(srListening)
+        // Clear text box when starting new recording
+        if (srListening) {
+            setAnalysisQuery('')
+        }
+    }, [srListening])
+
+    // Auto-apply filters after voice recognition
+    useEffect(() => {
+        if (shouldAutoApply) {
+            setShouldAutoApply(false)
+            // Small delay to ensure state updates are complete
+            setTimeout(() => {
+                fetchList()
+            }, 100)
+        }
+    }, [shouldAutoApply])
 
     const handleFilterFromChange = (newFrom: string) => {
         setFilterFrom(newFrom)
