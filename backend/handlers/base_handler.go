@@ -22,6 +22,13 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	tripsGroup.GET("", GetUserTripsHandler)
 	tripsGroup.GET("/:id", GetTripHandler)
 	tripsGroup.DELETE("/:id", DeleteTripHandler)
+
+	// expense routes
+	expenseGroup := r.Group("/api/expenses")
+	expenseGroup.Use(service.AuthMiddleware())
+	expenseGroup.POST("", CreateExpenseHandler)
+	expenseGroup.GET("", ListExpensesHandler)
+	expenseGroup.GET("/analyze", AnalyzeExpensesHandler)
 }
 
 func RootHandler(c *gin.Context) {
