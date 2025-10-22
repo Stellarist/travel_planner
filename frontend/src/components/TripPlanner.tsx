@@ -50,7 +50,7 @@ export default function TripPlanner() {
     const [destination, setDestination] = useState('');
     const [startDate, setStartDate] = useState(defaultDates.start);
     const [endDate, setEndDate] = useState(defaultDates.end);
-    const [budget, setBudget] = useState('');
+    const [budget, setBudget] = useState('2000');
     const [travelers, setTravelers] = useState('1');
     const [preferences, setPreferences] = useState<string[]>([]);
     const [specialNeeds, setSpecialNeeds] = useState('');
@@ -58,6 +58,7 @@ export default function TripPlanner() {
     const [isLoading, setIsLoading] = useState(false);
     const [tripPlan, setTripPlan] = useState<TripPlan | null>(null);
     const [error, setError] = useState('');
+    const [recognizedText, setRecognizedText] = useState('');
 
     const availablePreferences = ['美食', '动漫', '亲子', '历史', '自然', '购物', '冒险'];
 
@@ -77,11 +78,41 @@ export default function TripPlanner() {
         recognition.onstart = () => {
             setIsListening(true);
             setError('');
+            setRecognizedText('');
         };
 
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 3;
+        recognition.continuous = false;
+
         recognition.onresult = (event: any) => {
-            const transcript = event.results[0][0].transcript;
-            parseVoiceInput(transcript);
+            // Compose interim and final transcripts
+            let interim = '';
+            let final = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const res = event.results[i];
+                if (res.isFinal) {
+                    final += res[0].transcript;
+                } else {
+                    interim += res[0].transcript;
+                }
+            }
+
+            if (interim) {
+                setRecognizedText(interim);
+            }
+
+            if (final) {
+                // Use final as the main recognized text and parse it
+                setRecognizedText(final);
+                parseVoiceInput(final);
+                try {
+                    // 确保停止识别（部分浏览器可能需要显式停止）
+                    recognition.stop();
+                } catch (e) {
+                    // ignore
+                }
+            }
         };
 
         recognition.onerror = (event: any) => {
@@ -100,31 +131,106 @@ export default function TripPlanner() {
     const parseVoiceInput = (text: string) => {
         console.log('语音输入:', text);
 
-        // 提取目的地
-        const destMatch = text.match(/去([\u4e00-\u9fa5]+)/);
-        if (destMatch) {
-            setDestination(destMatch[1]);
-        }
-
-        // 提取天数
-        const daysMatch = text.match(/(\d+)\s*天/);
-        if (daysMatch && startDate) {
-            const days = parseInt(daysMatch[1]);
-            const start = new Date(startDate);
-            const end = new Date(start);
-            end.setDate(end.getDate() + days - 1);
-            setEndDate(end.toISOString().split('T')[0]);
-        }
-
-        // 提取预算
-        const budgetMatch = text.match(/预算\s*(\d+\.?\d*)\s*[万元]/);
-        if (budgetMatch) {
-            const amount = parseFloat(budgetMatch[1]);
-            if (text.includes('万')) {
-                setBudget((amount * 10000).toString());
-            } else {
-                setBudget(amount.toString());
+        // helper: convert simple Chinese numerals (supports 零一二三四五六七八九十百千万)
+        const chineseToNumber = (cn: string): number | null => {
+            if (!cn) return null;
+            const map: any = { 零: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+            let result = 0;
+            let section = 0;
+            let number = 0;
+            for (let i = 0; i < cn.length; i++) {
+                const ch = cn[i];
+                if (ch === '万') {
+                    section = (section + number) * 10000;
+                    result += section;
+                    section = 0;
+                    number = 0;
+                } else if (ch === '千') {
+                    section += (number || 1) * 1000;
+                    number = 0;
+                } else if (ch === '百') {
+                    section += (number || 1) * 100;
+                    number = 0;
+                } else if (ch === '十') {
+                    // handle 十 or 二十 etc.
+                    section += (number || 1) * 10;
+                    number = 0;
+                } else if (map.hasOwnProperty(ch)) {
+                    number = map[ch];
+                } else {
+                    // unknown char
+                    return null;
+                }
             }
+            return result + section + number;
+        };
+
+        // ------------------ 目的地 ------------------
+        // 支持表达：去 日本 / 到 东京 / 想去大阪 等，匹配后面直到遇到天/预算/带/和/，等关键词
+        const destRegex = /(去|到|想去|我要去|想去到)\s*([A-Za-z0-9\u4e00-\u9fa5·\s]{1,30}?)(?=\s|\d|天|日|预算|带|和|，|,|。|$)/i;
+        const destMatch = text.match(destRegex);
+        if (destMatch && destMatch[2]) {
+            // trim whitespace and punctuation
+            const dest = destMatch[2].trim().replace(/[，,。\.\s]+$/, '');
+            if (dest) setDestination(dest);
+        } else {
+            // 备选：有时用户可能只说目的地，例如 "日本" 单词
+            const lonePlace = text.match(/^[\s]*(?:我想去|我要去|去|到)?\s*([A-Za-z0-9\u4e00-\u9fa5·]{2,30})[\s,，。]?/i);
+            if (lonePlace && lonePlace[1]) {
+                setDestination(lonePlace[1].trim());
+            }
+        }
+
+        // ------------------ 天数 ------------------
+        const daysRegex = /(\d+)\s*天|([一二三四五六七八九十百零]+)\s*天/;
+        const daysMatch = text.match(daysRegex);
+        if (daysMatch && startDate) {
+            let days = 0;
+            if (daysMatch[1]) days = parseInt(daysMatch[1]);
+            else if (daysMatch[2]) {
+                const n = chineseToNumber(daysMatch[2]);
+                if (n) days = n;
+            }
+            if (days > 0) {
+                const start = new Date(startDate);
+                const end = new Date(start);
+                end.setDate(end.getDate() + days - 1);
+                setEndDate(end.toISOString().split('T')[0]);
+            }
+        }
+
+        // ------------------ 预算 ------------------
+        // 支持：预算 10000 / 预算 1 万 / 预算一万 / 预算 10000 元 / 10000 预算
+        let budgetValue: number | null = null;
+        const budRegex1 = /预算\s*([0-9]+(?:\.[0-9]+)?)(?:\s*(万|万元|元))?/i;
+        const budRegex2 = /([0-9]+(?:\.[0-9]+)?)\s*(万|万元|元)?\s*预算/i;
+        const budCNA = /预算\s*([一二三四五六七八九十百千万零]+)\s*(万|万元|元)?/;
+
+        let m = text.match(budRegex1);
+        if (!m) m = text.match(budRegex2);
+        if (m && m[1]) {
+            const num = parseFloat(m[1]);
+            const unit = m[2] || '';
+            if (unit && unit.includes('万')) {
+                budgetValue = num * 10000;
+            } else {
+                // treat as RMB
+                budgetValue = num;
+            }
+        } else {
+            const m2 = text.match(budCNA);
+            if (m2 && m2[1]) {
+                const cnNum = chineseToNumber(m2[1]);
+                if (cnNum != null) {
+                    const unit = m2[2] || '';
+                    if (unit && unit.includes('万')) budgetValue = cnNum * 10000;
+                    else budgetValue = cnNum;
+                }
+            }
+        }
+
+        if (budgetValue != null) {
+            setBudget(budgetValue.toString());
         }
 
         // 提取偏好
@@ -213,7 +319,7 @@ export default function TripPlanner() {
         setDestination('');
         setStartDate(newDefaultDates.start);
         setEndDate(newDefaultDates.end);
-        setBudget('');
+        setBudget('2000');
         setTravelers('1');
         setPreferences([]);
         setSpecialNeeds('');
@@ -242,6 +348,14 @@ export default function TripPlanner() {
                         <p className="voice-hint">
                             例如："我想去日本，5 天，预算 1 万元，喜欢美食和动漫，带孩子"
                         </p>
+                        {recognizedText && (
+                            <div className="recognized-text">
+                                <strong>识别结果：</strong>
+                                <span>{recognizedText}</span>
+                            </div>
+                        )}
+
+                        {/* 仅显示识别结果，解析由 parseVoiceInput 处理 */}
                     </div>
 
                     <div className="form-group">

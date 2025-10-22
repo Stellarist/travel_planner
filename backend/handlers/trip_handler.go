@@ -15,7 +15,7 @@ type TripRequest struct {
 	Destination  string   `json:"destination" binding:"required"`
 	StartDate    string   `json:"startDate" binding:"required"`
 	EndDate      string   `json:"endDate" binding:"required"`
-	Budget       float64  `json:"budget" binding:"required"`
+	Budget       float64  `json:"budget"`
 	Travelers    int      `json:"travelers" binding:"required,min=1"`
 	Preferences  []string `json:"preferences"`
 	SpecialNeeds string   `json:"specialNeeds"`
@@ -34,6 +34,11 @@ func PlanTripHandler(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		api.RespondError(c, http.StatusBadRequest, "请求参数错误")
 		return
+	}
+
+	// 如果未提供预算或为非正值，使用默认预算 2000 元
+	if req.Budget <= 0 {
+		req.Budget = 2000
 	}
 
 	username, ok := api.GetUsername(c)
