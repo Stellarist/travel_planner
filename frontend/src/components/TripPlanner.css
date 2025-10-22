@@ -104,6 +104,23 @@
     gap: 12px;
 }
 
+/* BudgetManager-specific: show three equal columns (category, amount, date) */
+.budget-form .form-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+/* Make inputs/selects/dates inside budget form have equal height and box sizing */
+.budget-form .form-group input,
+.budget-form .form-group select,
+.budget-form .form-group input[type="date"] {
+    height: 44px;
+    padding: 10px;
+    box-sizing: border-box;
+    font-size: 14px;
+    line-height: 20px;
+}
+
 /* make form groups slightly more compact when placed in a row */
 .form-row .form-group {
     margin-bottom: 8px;

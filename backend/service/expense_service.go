@@ -21,6 +21,7 @@ type ExpenseRecord struct {
 	Amount    float64 `json:"amount"`
 	Currency  string  `json:"currency"`
 	Note      string  `json:"note"`
+	Date      string  `json:"date"` // YYYY-MM-DD user-provided date for the expense
 	CreatedAt string  `json:"createdAt"`
 }
 
@@ -74,7 +75,7 @@ func GenerateExpenseID(ctx context.Context) (string, error) {
 }
 
 // AnalyzeExpenses 使用配置好的模型对花费进行简单分析
-func AnalyzeExpenses(ctx context.Context, username string, list []*ExpenseRecord) (string, error) {
+func AnalyzeExpenses(ctx context.Context, username string, list []*ExpenseRecord, userQuery string) (string, error) {
 	cfg := config.Global.Model
 	if cfg.ApiKey == "" || cfg.BaseURL == "" || cfg.Model == "" {
 		return "", errors.New("model not configured")
@@ -89,10 +90,16 @@ func AnalyzeExpenses(ctx context.Context, username string, list []*ExpenseRecord
 	}
 	summary += fmt.Sprintf("Total: %.2f\n", total)
 
+	// include optional user query to guide the analysis
+	queryPrefix := ""
+	if userQuery != "" {
+		queryPrefix = "User request: " + userQuery + "\n\n"
+	}
+
 	payload := map[string]interface{}{
 		"model": cfg.Model,
 		"messages": []map[string]interface{}{
-			{"role": "user", "content": "Please analyze the following travel expenses and provide budget suggestions and categorization.\n\n" + summary},
+			{"role": "user", "content": queryPrefix + "Please analyze the following travel expenses and provide budget suggestions and categorization.\n\n" + summary},
 		},
 	}
 

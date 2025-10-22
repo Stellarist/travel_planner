@@ -17,6 +17,7 @@ type ExpenseRecord struct {
 	Amount    float64 `json:"amount"`
 	Currency  string  `json:"currency"`
 	Note      string  `json:"note"`
+	Date      string  `json:"date"` // YYYY-MM-DD user-provided date for the expense
 	CreatedAt string  `json:"createdAt"`
 }
 
@@ -41,6 +42,10 @@ func CreateExpenseHandler(c *gin.Context) {
 		id, _ := service.GenerateExpenseID(ctx)
 		rec.ID = id
 	}
+	// ensure date is set (YYYY-MM-DD)
+	if rec.Date == "" {
+		rec.Date = time.Now().Format("2006-01-02")
+	}
 	rec.CreatedAt = time.Now().Format(time.RFC3339)
 
 	if err := service.SaveExpense(ctx, username, &rec); err != nil {
@@ -62,13 +67,57 @@ func ListExpensesHandler(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()
 
+	// optional filters
+	category := c.Query("category")
+	from := c.Query("from") // YYYY-MM-DD
+	to := c.Query("to")     // YYYY-MM-DD
+
 	list, err := service.GetExpenses(ctx, username)
 	if err != nil {
 		api.RespondError(c, http.StatusInternalServerError, "获取失败")
 		return
 	}
 
-	api.RespondSuccess(c, list)
+	// apply simple filtering by category and date range
+	filtered := make([]*service.ExpenseRecord, 0, len(list))
+	var fromT, toT time.Time
+	var errf error
+	if from != "" {
+		fromT, errf = time.Parse("2006-01-02", from)
+		if errf != nil {
+			api.RespondError(c, http.StatusBadRequest, "invalid 'from' date")
+			return
+		}
+	}
+	if to != "" {
+		toT, errf = time.Parse("2006-01-02", to)
+		if errf != nil {
+			api.RespondError(c, http.StatusBadRequest, "invalid 'to' date")
+			return
+		}
+	}
+
+	for _, e := range list {
+		if category != "" && e.Category != category {
+			continue
+		}
+		if from != "" || to != "" {
+			d, err := time.Parse("2006-01-02", e.Date)
+			if err != nil {
+				// skip malformed dates
+				continue
+			}
+			if !fromT.IsZero() && d.Before(fromT) {
+				continue
+			}
+			if !toT.IsZero() && d.After(toT) {
+				continue
+			}
+		}
+		filtered = append(filtered, e)
+	}
+
+	api.RespondSuccess(c, filtered)
 }
 
 // AnalyzeExpensesHandler 使用大模型分析用户开销并返回建议
@@ -82,13 +131,56 @@ func AnalyzeExpensesHandler(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
 	defer cancel()
 
+	// allow optional filters and a free-text query for the AI
+	category := c.Query("category")
+	from := c.Query("from")
+	to := c.Query("to")
+	userQuery := c.Query("q")
+
 	list, err := service.GetExpenses(ctx, username)
 	if err != nil {
 		api.RespondError(c, http.StatusInternalServerError, "获取失败")
 		return
 	}
 
-	analysis, err := service.AnalyzeExpenses(ctx, username, list)
+	// apply same filtering logic as ListExpensesHandler
+	filtered := make([]*service.ExpenseRecord, 0, len(list))
+	var fromT, toT time.Time
+	var errf error
+	if from != "" {
+		fromT, errf = time.Parse("2006-01-02", from)
+		if errf != nil {
+			api.RespondError(c, http.StatusBadRequest, "invalid 'from' date")
+			return
+		}
+	}
+	if to != "" {
+		toT, errf = time.Parse("2006-01-02", to)
+		if errf != nil {
+			api.RespondError(c, http.StatusBadRequest, "invalid 'to' date")
+			return
+		}
+	}
+	for _, e := range list {
+		if category != "" && e.Category != category {
+			continue
+		}
+		if from != "" || to != "" {
+			d, err := time.Parse("2006-01-02", e.Date)
+			if err != nil {
+				continue
+			}
+			if !fromT.IsZero() && d.Before(fromT) {
+				continue
+			}
+			if !toT.IsZero() && d.After(toT) {
+				continue
+			}
+		}
+		filtered = append(filtered, e)
+	}
+
+	analysis, err := service.AnalyzeExpenses(ctx, username, filtered, userQuery)
 	if err != nil {
 		api.RespondError(c, http.StatusInternalServerError, "分析失败: "+err.Error())
 		return
