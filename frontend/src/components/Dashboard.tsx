@@ -104,11 +104,11 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                                     <p>发现热门景点和隐藏的宝藏</p>
                                 </div>
 
-                                <div className="feature-card">
+                                <Link to="/budget" className="feature-card" style={{ textDecoration: 'none' }}>
                                     <div className="card-icon">💰</div>
                                     <h3>预算管理</h3>
                                     <p>追踪旅行开支，控制预算</p>
-                                </div>
+                                </Link>
 
                                 <div className="feature-card">
                                     <div className="card-icon">📝</div>

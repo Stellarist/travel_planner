@@ -1,0 +1,9 @@
+.voice-row {
+    display: flex;
+    gap: 10px;
+    align-items: center
+}
+
+.expenses-list {
+    margin-top: 16px
+}

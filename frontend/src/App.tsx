@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
 import TripPlanner from './components/TripPlanner'
+import BudgetManager from './components/BudgetManager'
 import './App.css'
 import type { User } from './types'
 
@@ -57,6 +58,7 @@ function App() {
     <Routes>
       <Route path="/" element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Login onLoginSuccess={handleLoginSuccess} />} />
       <Route path="/planner" element={user ? <TripPlanner /> : <Navigate to="/" replace />} />
+      <Route path="/budget" element={user ? <BudgetManager /> : <Navigate to="/" replace />} />
       {/* catch-all: redirect to root */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
