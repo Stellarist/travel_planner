@@ -36,7 +36,6 @@ func PlanTripHandler(c *gin.Context) {
 		return
 	}
 
-	// 如果未提供预算或为非正值，使用默认预算 2000 元
 	if req.Budget <= 0 {
 		req.Budget = 2000
 	}

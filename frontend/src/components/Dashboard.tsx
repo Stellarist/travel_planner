@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import './Dashboard.css'
-import TripPlanner from './TripPlanner'
 import type { User } from '../types'
 
 interface DashboardProps {
@@ -10,7 +10,7 @@ interface DashboardProps {
 
 function Dashboard({ user, onLogout }: DashboardProps) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [currentView, setCurrentView] = useState<'home' | 'planner'>('home')
+    // routing will handle views; remove internal currentView state
 
     const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen)
@@ -20,12 +20,9 @@ function Dashboard({ user, onLogout }: DashboardProps) {
         setIsSidebarOpen(false)
     }
 
-    const navigateToPlanner = () => {
-        setCurrentView('planner')
-    }
-
     const navigateToHome = () => {
-        setCurrentView('home')
+        // navigate by clicking header (Link could be used externally)
+        // we'll keep a no-op handler for header click
     }
 
     return (
@@ -89,14 +86,17 @@ function Dashboard({ user, onLogout }: DashboardProps) {
 
             <main className="dashboard-main">
                 <div className="content-wrapper">
-                    {currentView === 'home' ? (
+                    {
+                        /* show home cards; planner is a separate route */
+                    }
+                    {(
                         <>
                             <div className="feature-cards">
-                                <div className="feature-card" onClick={navigateToPlanner} style={{ cursor: 'pointer' }}>
+                                <Link to="/planner" className="feature-card" style={{ textDecoration: 'none' }}>
                                     <div className="card-icon">🗺️</div>
                                     <h3>规划行程</h3>
                                     <p>创建详细的旅行计划，安排每日行程</p>
-                                </div>
+                                </Link>
 
                                 <div className="feature-card">
                                     <div className="card-icon">📍</div>
@@ -117,8 +117,6 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                                 </div>
                             </div>
                         </>
-                    ) : (
-                        <TripPlanner />
                     )}
                 </div>
             </main>

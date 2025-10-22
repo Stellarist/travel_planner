@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { getApiUrl } from '../config'
-import '../styles/common.css'
+import '../shared/common.css'
 import './Login.css'
 
 interface LoginProps {

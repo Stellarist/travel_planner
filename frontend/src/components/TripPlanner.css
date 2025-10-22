@@ -1,33 +1,48 @@
 .trip-planner {
-    max-width: 1400px;
+    width: 100%;
+    max-width: 1200px;
+    /* desktop-friendly max width */
     margin: 0 auto;
-    padding: 40px;
+    padding: 20px 20px 10px 20px;
+}
+
+/* 页面级容器，覆盖深色 body 背景，使 planner 区域为浅色 */
+.trip-planner-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 12px 16px;
+    /* 缩小顶部空白以靠近页面顶部 */
+    margin-top: 0;
+    background: #f6f8fb;
+    /* 与 dashboard 轻色调保持一致 */
 }
 
 .planner-header {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
 }
 
 .planner-header h2 {
-    font-size: 36px;
+    font-size: 28px;
     color: #333;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .planner-header p {
     color: #666;
-    font-size: 16px;
+    font-size: 14px;
 }
 
 /* 语音输入区域 */
 .voice-input-section {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 15px;
-    padding: 30px;
+    border-radius: 12px;
+    padding: 18px;
     text-align: center;
-    margin-bottom: 30px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    margin-bottom: 18px;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
 }
 
 .voice-button {
@@ -76,17 +91,36 @@
 /* 表单样式 */
 .planner-form {
     background: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 18px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* 通用表单样式已移动到 ../styles/common.css */
+/* 通用表单样式已移动到 ../shared/common.css */
 
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 12px;
+}
+
+/* make form groups slightly more compact when placed in a row */
+.form-row .form-group {
+    margin-bottom: 8px;
+}
+
+/* make the special needs textarea a compact, single-line input: no scroll, smaller font */
+.special-needs {
+    height: 38px;
+    /* comfortable single-line height */
+    padding: 8px 10px;
+    resize: none;
+    /* prevent user resizing */
+    overflow: hidden;
+    /* remove scroll bar */
+    line-height: 18px;
+    font-size: 13px;
+    /* slightly larger but still compact */
 }
 
 /* 偏好标签 */
@@ -97,14 +131,14 @@
 }
 
 .pref-tag {
-    padding: 8px 16px;
-    border: 2px solid #ddd;
-    border-radius: 20px;
+    padding: 6px 12px;
+    border: 2px solid #eee;
+    border-radius: 16px;
     background: white;
     color: #666;
     cursor: pointer;
-    transition: all 0.3s;
-    font-size: 14px;
+    transition: all 0.2s;
+    font-size: 13px;
 }
 
 .pref-tag:hover {
@@ -119,26 +153,26 @@
 }
 
 /* 提交按钮 */
-/* 提交按钮样式改由 ../styles/common.css 提供 */
+/* 提交按钮样式改由 ../shared/common.css 提供 */
 
 /* 错误消息 */
-/* 错误消息样式改由 ../styles/common.css 提供 */
+/* 错误消息样式改由 ../shared/common.css 提供 */
 
 /* 行程结果 */
 .trip-result {
     background: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 18px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .result-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #f0f0f0;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .result-header h3 {
@@ -165,9 +199,9 @@
 /* 行程摘要 */
 .trip-summary {
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 20px;
+    padding: 12px;
     border-radius: 10px;
-    margin-bottom: 25px;
+    margin-bottom: 16px;
 }
 
 .summary-item {
@@ -198,26 +232,26 @@
 
 /* 行程卡片 */
 .itinerary-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
 }
 
 .day-card {
-    border: 1px solid #e0e0e0;
-    border-radius: 12px;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
     overflow: hidden;
-    transition: box-shadow 0.3s;
+    transition: box-shadow 0.2s;
 }
 
 .day-card:hover {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .day-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 15px 20px;
+    padding: 10px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -240,14 +274,14 @@
 
 /* 活动列表 */
 .activities-list {
-    padding: 20px;
+    padding: 12px;
 }
 
 .activity-item {
     display: flex;
-    gap: 15px;
-    padding: 15px 0;
-    border-bottom: 1px solid #f0f0f0;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f7f7f7;
 }
 
 .activity-item:last-child {
@@ -255,10 +289,10 @@
 }
 
 .activity-time {
-    min-width: 60px;
-    font-weight: bold;
+    min-width: 50px;
+    font-weight: 600;
     color: #667eea;
-    font-size: 14px;
+    font-size: 13px;
 }
 
 .activity-content {
@@ -282,7 +316,7 @@
 
 .activity-header h5 {
     margin: 0;
-    font-size: 16px;
+    font-size: 14px;
     color: #333;
 }
 
@@ -294,9 +328,9 @@
 
 .activity-desc {
     color: #555;
-    font-size: 14px;
-    line-height: 1.5;
-    margin: 8px 0;
+    font-size: 13px;
+    line-height: 1.4;
+    margin: 6px 0;
 }
 
 .activity-tips {
@@ -310,17 +344,42 @@
 
 .activity-footer {
     display: flex;
-    gap: 15px;
-    margin-top: 8px;
-    font-size: 13px;
+    gap: 12px;
+    margin-top: 6px;
+    font-size: 12px;
     color: #888;
 }
 
 /* 住宿信息 */
 .accommodation {
     background: #f8f9fa;
-    padding: 15px 20px;
+    padding: 10px 14px;
     color: #555;
-    font-size: 14px;
-    border-top: 1px solid #e0e0e0;
+    font-size: 13px;
+    border-top: 1px solid #eaeaea;
+}
+
+/* 大屏幕下将行程卡片两列显示，减少纵向长度 */
+@media (min-width: 1100px) {
+    .itinerary-container {
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+}
+
+/* 小屏幕保持单列且适当间距 */
+@media (max-width: 600px) {
+    .trip-planner {
+        padding: 20px;
+    }
+
+    .planner-form,
+    .trip-result {
+        padding: 14px;
+    }
+
+    /* ensure form-row stacks on small screens */
+    .form-row {
+        grid-template-columns: 1fr;
+    }
 }

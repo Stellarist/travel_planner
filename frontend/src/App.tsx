@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Login from './components/Login'
 import Dashboard from './components/Dashboard'
+import TripPlanner from './components/TripPlanner'
 import './App.css'
 import type { User } from './types'
 
@@ -49,14 +51,15 @@ function App() {
     )
   }
 
+  if (loading) return null
+
   return (
-    <>
-      {user ? (
-        <Dashboard user={user} onLogout={handleLogout} />
-      ) : (
-        <Login onLoginSuccess={handleLoginSuccess} />
-      )}
-    </>
+    <Routes>
+      <Route path="/" element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Login onLoginSuccess={handleLoginSuccess} />} />
+      <Route path="/planner" element={user ? <TripPlanner /> : <Navigate to="/" replace />} />
+      {/* catch-all: redirect to root */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }
 
