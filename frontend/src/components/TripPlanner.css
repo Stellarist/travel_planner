@@ -1,3 +1,21 @@
+.recognized-input {
+    flex: 1;
+    height: 44px;
+    padding: 10px 12px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 22px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.recognized-input:focus {
+    outline: none;
+    border-color: white;
+    background: rgba(255, 255, 255, 0.3);
+}
+
 .trip-planner {
     width: 100%;
     max-width: 1200px;
@@ -35,9 +53,12 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
     padding: 18px;
-    text-align: center;
     margin-bottom: 18px;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+}
+
+.voice-controls {
+    text-align: center;
 }
 
 .voice-button {
@@ -82,6 +103,71 @@
     font-size: 13px;
     opacity: 0.9;
 }
+
+.recognized-text-editor {
+    margin-top: 16px;
+    text-align: left;
+}
+
+.recognized-text-editor label {
+    display: block;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.text-editor-row {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.text-editor-row textarea {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: none;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-family: inherit;
+}
+
+.text-editor-row textarea:focus {
+    outline: none;
+    border-color: white;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.parse-button {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    transition: all 0.3s;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.parse-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: #f0f0f0;
+}
+
+.parse-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 
 .planner-form {
     background: white;

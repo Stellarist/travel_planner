@@ -55,3 +55,45 @@ export interface Config {
     apiBaseUrl: string
     backendBaseUrl?: string
 }
+
+export interface ParsedTripInfo {
+    destination: string
+    startDate: string
+    endDate: string
+    duration: number
+    budget: number
+    travelers: number
+    preferences: string[]
+    keywords: string[]
+    originalText: string
+    confidence: 'high' | 'medium' | 'low'
+}
+
+export interface ParseTextRequest {
+    text: string
+}
+
+export interface ParseTextResponse {
+    success: boolean
+    message: string
+    data?: ParsedTripInfo
+}
+
+export interface ParsedExpenseQuery {
+    category: string
+    startDate: string
+    endDate: string
+    query: string
+    originalText: string
+    confidence: 'high' | 'medium' | 'low'
+}
+
+export interface ParseExpenseRequest {
+    text: string
+}
+
+export interface ParseExpenseResponse {
+    success: boolean
+    message: string
+    data?: ParsedExpenseQuery
+}

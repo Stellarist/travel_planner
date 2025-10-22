@@ -29,6 +29,11 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	expenseGroup.POST("", CreateExpenseHandler)
 	expenseGroup.GET("", ListExpensesHandler)
 	expenseGroup.GET("/analyze", AnalyzeExpensesHandler)
+
+	parserGroup := r.Group("/api/parser")
+	parserGroup.Use(service.AuthMiddleware())
+	parserGroup.POST("/parse", ParseTextHandler)
+	parserGroup.POST("/parse-expense", ParseExpenseQueryHandler) // 新增：解析开销查询
 }
 
 func RootHandler(c *gin.Context) {

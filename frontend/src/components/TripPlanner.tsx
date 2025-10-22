@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { getApiUrl, useSpeechRecognition, getDefaultDateRange, formatDate } from '../shared/utils';
+import { getApiUrl, useSpeechRecognition, getDefaultDateRange, formatDate, apiPost } from '../shared/utils';
 import '../styles/common.css';
 import './TripPlanner.css';
-import type { TripPlan } from '../shared/types';
+import type { TripPlan, ParsedTripInfo } from '../shared/types';
 import { AVAILABLE_PREFERENCES } from '../shared/constants';
 
 export default function TripPlanner() {
@@ -20,123 +20,71 @@ export default function TripPlanner() {
     const [tripPlan, setTripPlan] = useState<TripPlan | null>(null);
     const [error, setError] = useState('');
     const [recognizedText, setRecognizedText] = useState('');
+    const [parseLoading, setParseLoading] = useState(false);
 
     const { isListening: srListening, recognizedText: srText, toggle } = useSpeechRecognition({
         onFinal: (t: string) => {
             setRecognizedText(t);
-            parseVoiceInput(t);
+            parseVoiceInputWithBackend(t);
         },
     });
 
     useEffect(() => setIsListening(srListening), [srListening]);
     useEffect(() => setRecognizedText(srText), [srText]);
 
-    const parseVoiceInput = (text: string) => {
+    const parseVoiceInputWithBackend = async (text: string) => {
         console.log('语音输入:', text);
 
-        const chineseToNumber = (cn: string): number | null => {
-            if (!cn) return null;
-            const map: any = { 零: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
-            let result = 0;
-            let section = 0;
-            let number = 0;
-            for (let i = 0; i < cn.length; i++) {
-                const ch = cn[i];
-                if (ch === '万') {
-                    section = (section + number) * 10000;
-                    result += section;
-                    section = 0;
-                    number = 0;
-                } else if (ch === '千') {
-                    section += (number || 1) * 1000;
-                    number = 0;
-                } else if (ch === '百') {
-                    section += (number || 1) * 100;
-                    number = 0;
-                } else if (ch === '十') {
-                    section += (number || 1) * 10;
-                    number = 0;
-                } else if (map.hasOwnProperty(ch)) {
-                    number = map[ch];
-                } else {
-                    return null;
+        try {
+            setParseLoading(true);
+            const response: any = await apiPost('/api/parser/parse', { text });
+
+            if (response.success && response.data) {
+                const parsed: ParsedTripInfo = response.data;
+                console.log('后端解析结果:', parsed);
+
+                setDestination('');
+                setStartDate(defaultDates.start);
+                setEndDate(defaultDates.end);
+                setBudget('');
+                setTravelers('1');
+                setPreferences([]);
+                setSpecialNeeds('');
+
+                if (parsed.destination) {
+                    setDestination(parsed.destination);
                 }
-            }
-            return result + section + number;
-        };
+                if (parsed.startDate) {
+                    setStartDate(parsed.startDate);
+                }
+                if (parsed.endDate) {
+                    setEndDate(parsed.endDate);
+                } else if (parsed.startDate && parsed.duration > 0) {
+                    const start = new Date(parsed.startDate);
+                    const end = new Date(start);
+                    end.setDate(end.getDate() + parsed.duration - 1);
+                    setEndDate(end.toISOString().split('T')[0]);
+                }
+                if (parsed.budget > 0) {
+                    setBudget(parsed.budget.toString());
+                }
+                if (parsed.travelers > 0) {
+                    setTravelers(parsed.travelers.toString());
+                }
+                if (parsed.preferences && parsed.preferences.length > 0) {
+                    setPreferences(parsed.preferences);
+                }
 
-        const destRegex = /(去|到|想去|我要去|想去到)\s*([A-Za-z0-9\u4e00-\u9fa5·\s]{1,30}?)(?=\s|\d|天|日|预算|带|和|，|,|。|$)/i;
-        const destMatch = text.match(destRegex);
-        if (destMatch && destMatch[2]) {
-            const dest = destMatch[2].trim().replace(/[，,。\.\s]+$/, '');
-            if (dest) setDestination(dest);
-        } else {
-            const lonePlace = text.match(/^[\s]*(?:我想去|我要去|去|到)?\s*([A-Za-z0-9\u4e00-\u9fa5·]{2,30})[\s,，。]?/i);
-            if (lonePlace && lonePlace[1]) {
-                setDestination(lonePlace[1].trim());
-            }
-        }
-
-        const daysRegex = /(\d+)\s*天|([一二三四五六七八九十百零]+)\s*天/;
-        const daysMatch = text.match(daysRegex);
-        if (daysMatch && startDate) {
-            let days = 0;
-            if (daysMatch[1]) days = parseInt(daysMatch[1]);
-            else if (daysMatch[2]) {
-                const n = chineseToNumber(daysMatch[2]);
-                if (n) days = n;
-            }
-            if (days > 0) {
-                const start = new Date(startDate);
-                const end = new Date(start);
-                end.setDate(end.getDate() + days - 1);
-                setEndDate(end.toISOString().split('T')[0]);
-            }
-        }
-
-        let budgetValue: number | null = null;
-        const budRegex1 = /预算\s*([0-9]+(?:\.[0-9]+)?)(?:\s*(万|万元|元))?/i;
-        const budRegex2 = /([0-9]+(?:\.[0-9]+)?)\s*(万|万元|元)?\s*预算/i;
-        const budCNA = /预算\s*([一二三四五六七八九十百千万零]+)\s*(万|万元|元)?/;
-
-        let m = text.match(budRegex1);
-        if (!m) m = text.match(budRegex2);
-        if (m && m[1]) {
-            const num = parseFloat(m[1]);
-            const unit = m[2] || '';
-            if (unit && unit.includes('万')) {
-                budgetValue = num * 10000;
+                if (parsed.confidence === 'low') {
+                    console.warn('解析置信度较低，请检查填充的信息');
+                }
             } else {
-                budgetValue = num;
+                console.warn('后端解析失败');
             }
-        } else {
-            const m2 = text.match(budCNA);
-            if (m2 && m2[1]) {
-                const cnNum = chineseToNumber(m2[1]);
-                if (cnNum != null) {
-                    const unit = m2[2] || '';
-                    if (unit && unit.includes('万')) budgetValue = cnNum * 10000;
-                    else budgetValue = cnNum;
-                }
-            }
-        }
-
-        if (budgetValue != null) {
-            setBudget(budgetValue.toString());
-        }
-
-        const newPrefs: string[] = [];
-        AVAILABLE_PREFERENCES.forEach(pref => {
-            if (text.includes(pref)) {
-                newPrefs.push(pref);
-            }
-        });
-        if (newPrefs.length > 0) {
-            setPreferences(prev => [...new Set([...prev, ...newPrefs])]);
-        }
-
-        if (text.includes('带孩子') || text.includes('亲子')) {
-            setSpecialNeeds(prev => prev ? prev + '、带孩子' : '带孩子');
+        } catch (error) {
+            console.error('调用后端解析API失败:', error);
+        } finally {
+            setParseLoading(false);
         }
     };
 
@@ -214,20 +162,48 @@ export default function TripPlanner() {
                 {!tripPlan ? (
                     <form className="planner-form" onSubmit={handleSubmit}>
                         <div className="voice-input-section">
-                            <button
-                                type="button"
-                                className={`voice-button ${isListening ? 'listening' : ''}`}
-                                onClick={() => toggle()}
-                            >
-                                {isListening ? '⏹ 停止聆听' : '🎤 语音输入'}
-                            </button>
-                            <p className="voice-hint">
-                                例如："我想去日本，5 天，预算 1 万元，喜欢美食和动漫，带孩子"
-                            </p>
+                            <div className="voice-controls">
+                                <button
+                                    type="button"
+                                    className={`voice-button ${isListening ? 'listening' : ''}`}
+                                    onClick={() => toggle()}
+                                >
+                                    {isListening ? '⏹ 停止聆听' : '🎤 语音输入'}
+                                </button>
+                                {!recognizedText && (
+                                    <p className="voice-hint">
+                                        例如："我想去日本，5 天，预算 1 万元，喜欢美食和动漫，带孩子"
+                                    </p>
+                                )}
+                            </div>
                             {recognizedText && (
-                                <div className="recognized-text">
-                                    <strong>识别结果：</strong>
-                                    <span>{recognizedText}</span>
+                                <div className="recognized-text-editor">
+                                    <div className="text-editor-row">
+                                        <input
+                                            className="recognized-input"
+                                            type="text"
+                                            value={recognizedText}
+                                            onChange={(e) => setRecognizedText(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    if (recognizedText.trim() && !parseLoading) {
+                                                        parseVoiceInputWithBackend(recognizedText);
+                                                    }
+                                                }
+                                            }}
+                                            placeholder="语音识别的文字会显示在这里，你可以修改后再解析"
+                                        />
+                                        <button
+                                            type="button"
+                                            className="parse-button"
+                                            onClick={() => parseVoiceInputWithBackend(recognizedText)}
+                                            disabled={!recognizedText.trim() || parseLoading}
+                                        >
+                                            {parseLoading ? '解析中…' : '✨ 智能解析'}
+                                        </button>
+                                    </div>
+                                    { }
                                 </div>
                             )}
                         </div>

@@ -3,7 +3,7 @@ import '../styles/common.css'
 import './TripPlanner.css'
 import './BudgetManager.css'
 import { apiPost, apiGet, formatAmount, useSpeechRecognition, getTodayDate, getDateDaysAgo } from '../shared/utils'
-import type { Expense } from '../shared/types'
+import type { Expense, ParsedExpenseQuery } from '../shared/types'
 import { CATEGORY_MAP, CATEGORY_COLORS, BUDGET_ITEMS_PER_PAGE, CATEGORY_NAMES } from '../shared/constants'
 
 export default function BudgetManager() {
@@ -24,57 +24,49 @@ export default function BudgetManager() {
     const getCategoryName = (cat: string) => CATEGORY_MAP[cat] || cat
     const getCategoryColor = (cat: string) => CATEGORY_COLORS[cat] || '#999'
 
-    const autoSetFilters = (text: string) => {
-        const lowerText = text.toLowerCase()
+    const parseExpenseQueryWithBackend = async (text: string) => {
+        console.log('开销查询语音输入:', text);
 
-        // 设置分类过滤器
-        const categoryKeywords: Record<string, string[]> = {
-            '食物': ['食物', '吃', '饭', '餐'],
-            '交通': ['交通', '打车', '地铁', '公交'],
-            '住宿': ['住宿', '酒店', '住'],
-            '购物': ['购物', '买'],
-            '活动': ['活动', '娱乐', '玩']
-        }
+        try {
+            const response: any = await apiPost('/api/parser/parse-expense', { text });
 
-        for (const [cat, keywords] of Object.entries(categoryKeywords)) {
-            if (keywords.some(kw => lowerText.includes(kw))) {
-                setFilterCategory(cat)
-                break
+            if (response.success && response.data) {
+                const parsed: ParsedExpenseQuery = response.data;
+                console.log('后端解析结果:', parsed);
+
+                setFilterCategory('');
+                setFilterFrom(getDateDaysAgo(30));
+                setFilterTo(getTodayDate());
+                setAnalysisQuery('');
+
+                if (parsed.category) {
+                    setFilterCategory(parsed.category);
+                }
+                if (parsed.startDate) {
+                    setFilterFrom(parsed.startDate);
+                }
+                if (parsed.endDate) {
+                    setFilterTo(parsed.endDate);
+                }
+                setAnalysisQuery(parsed.query || text);
+
+                setShouldAutoApply(true);
+
+                if (parsed.confidence === 'low') {
+                    console.warn('解析置信度较低，请检查过滤条件');
+                }
+            } else {
+                console.warn('后端解析失败');
             }
+        } catch (error) {
+            console.error('调用后端解析API失败:', error);
         }
-
-        // 设置日期过滤器
-        const today = getTodayDate()
-        const dateRanges: Record<string, () => void> = {
-            '今天|今日': () => { setFilterFrom(today); setFilterTo(today) },
-            '昨天': () => {
-                const yesterday = getDateDaysAgo(1)
-                setFilterFrom(yesterday); setFilterTo(yesterday)
-            },
-            '一周|7天|七天|最近一周': () => {
-                setFilterFrom(getDateDaysAgo(7)); setFilterTo(today)
-            },
-            '三天|3天': () => {
-                setFilterFrom(getDateDaysAgo(3)); setFilterTo(today)
-            },
-            '一个月|30天|三十天|最近一个月': () => {
-                setFilterFrom(getDateDaysAgo(30)); setFilterTo(today)
-            }
-        }
-
-        for (const [pattern, setRange] of Object.entries(dateRanges)) {
-            if (pattern.split('|').some(p => lowerText.includes(p))) {
-                setRange()
-                break
-            }
-        }
-    }
+    };
 
     const { isListening: srListening, toggle, stop } = useSpeechRecognition({
         onFinal: (t: string) => {
             setAnalysisQuery(t)
-            autoSetFilters(t)
-            setShouldAutoApply(true)
+            parseExpenseQueryWithBackend(t)
         },
     })
 
@@ -153,12 +145,10 @@ export default function BudgetManager() {
 
     useEffect(() => { fetchList() }, [])
 
-    // 计算统计数据
     const totalsMap = new Map<string, number>()
     list.forEach(it => totalsMap.set(it.category, (totalsMap.get(it.category) || 0) + Number(it.amount || 0)))
     const totalSum = Array.from(totalsMap.values()).reduce((s, v) => s + v, 0) || 0
 
-    // 饼图数据处理
     const threshold = totalSum * 0.01
     const tempData = Array.from(totalsMap.entries())
         .reduce((acc, [k, v]) => {
