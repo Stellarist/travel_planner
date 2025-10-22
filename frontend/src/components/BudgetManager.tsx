@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
-import speechRecognition from '../shared/speechRecognition'
-import '../shared/common.css'
+import '../styles/common.css'
 import './TripPlanner.css'
 import './BudgetManager.css'
-import { apiPost, apiGet, formatAmount } from '../shared/utils'
+import { apiPost, apiGet, formatAmount, useSpeechRecognition } from '../shared/utils'
 import type { Expense } from '../shared/types'
 import { CATEGORY_MAP, CATEGORY_COLORS, BUDGET_ITEMS_PER_PAGE, CATEGORY_NAMES } from '../shared/constants'
 
@@ -65,9 +64,9 @@ export default function BudgetManager() {
         }
     }
 
-    const { isListening: srListening, toggle, stop } = speechRecognition({
+    const { isListening: srListening, toggle, stop } = useSpeechRecognition({
         onInterim: () => { },
-        onFinal: (t) => {
+        onFinal: (t: string) => {
             setAnalysisQuery(t)
             autoSetFilters(t)
             setShouldAutoApply(true)

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { getApiUrl } from '../shared/config';
-import '../shared/common.css';
+import { getApiUrl } from '../shared/utils';
+import '../styles/common.css';
 import './TripPlanner.css';
-import speechRecognition from '../shared/speechRecognition';
+import { useSpeechRecognition } from '../shared/utils';
 import type { TripPlan } from '../shared/types';
 import { AVAILABLE_PREFERENCES } from '../shared/constants';
 
@@ -33,7 +33,7 @@ export default function TripPlanner() {
     const [error, setError] = useState('');
     const [recognizedText, setRecognizedText] = useState('');
 
-    const { isListening: srListening, recognizedText: srText, toggle } = speechRecognition({
+    const { isListening: srListening, recognizedText: srText, toggle } = useSpeechRecognition({
         onFinal: (t: string) => { setRecognizedText(t); parseVoiceInput(t); },
     });
 

@@ -1,4 +1,16 @@
-import { getApiUrl } from './config'
+import configJson from '../../config.json'
+import type { Config } from './types'
+import { useEffect, useRef, useState } from 'react'
+
+export const config: Config = {
+  apiBaseUrl:
+    (configJson as any).apiBaseUrl || (configJson as any).backendBaseUrl || 'http://127.0.0.1:3000',
+  backendBaseUrl: (configJson as any).backendBaseUrl
+}
+
+export function getApiUrl(path: string): string {
+  return `${config.apiBaseUrl}${path}`
+}
 
 export const formatAmount = (amount: number): string => {
   if (amount >= 10000) return (amount / 10000).toFixed(1) + '万'
@@ -37,4 +49,90 @@ export const apiPost = async (path: string, body: any) => {
     body: JSON.stringify(body),
   })
   return res.json()
+}
+
+// Speech Recognition Hook
+type SpeechRecognitionOptions = {
+  lang?: string
+  onInterim?: (text: string) => void
+  onFinal?: (text: string) => void
+}
+
+export function useSpeechRecognition(opts: SpeechRecognitionOptions = {}) {
+  const { lang = 'zh-CN', onInterim, onFinal } = opts
+  const recognitionRef = useRef<any>(null)
+  const [isListening, setIsListening] = useState(false)
+  const [recognizedText, setRecognizedText] = useState('')
+
+  const start = () => {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      return
+    }
+    const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition
+    try {
+      const recognition = new SpeechRecognition()
+      recognition.lang = lang
+      recognition.continuous = false
+      recognition.interimResults = true
+      recognition.maxAlternatives = 3
+
+      recognition.onstart = () => {
+        setIsListening(true)
+        setRecognizedText('')
+      }
+
+      recognition.onresult = (event: any) => {
+        let interim = ''
+        let final = ''
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const res = event.results[i]
+          if (res.isFinal) final += res[0].transcript
+          else interim += res[0].transcript
+        }
+        if (interim) {
+          setRecognizedText(interim)
+          onInterim?.(interim)
+        }
+        if (final) {
+          setRecognizedText(final)
+          onFinal?.(final)
+          try { recognition.stop() } catch (e) { }
+        }
+      }
+
+      recognition.onerror = () => setIsListening(false)
+      recognition.onend = () => {
+        setIsListening(false)
+        recognitionRef.current = null
+      }
+
+      recognitionRef.current = recognition
+      recognition.start()
+    } catch (e) { }
+  }
+
+  const stop = () => {
+    const r = recognitionRef.current
+    if (r?.stop) {
+      try { r.stop() } catch (e) { }
+    }
+    recognitionRef.current = null
+    setIsListening(false)
+  }
+
+  const toggle = () => {
+    if (isListening) stop()
+    else start()
+  }
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current?.stop) {
+        try { recognitionRef.current.stop() } catch (e) { }
+      }
+      recognitionRef.current = null
+    }
+  }, [])
+
+  return { isListening, recognizedText, start, stop, toggle }
 }
