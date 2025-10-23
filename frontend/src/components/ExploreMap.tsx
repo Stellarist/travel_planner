@@ -282,17 +282,13 @@ export default function ExploreMap() {
         return favorites.some(f => f.id === id)
     }
 
-    // 跳转到收藏的位置
     const goToFavorite = (fav: { id: string; name: string; lng: number; lat: number; address: string }) => {
         if (!map || !AMap) return
 
-        // 关闭收藏夹面板
         setShowFavorites(false)
 
-        // 聚焦到该位置
         map.setZoomAndCenter(15, [fav.lng, fav.lat])
 
-        // 显示信息窗口
         const navUrl = getNavUrl(fav.lng, fav.lat, fav.name)
         const detailUrl = getDetailUrl(fav.lng, fav.lat, fav.name)
         const info = new AMap.InfoWindow({
@@ -460,7 +456,6 @@ export default function ExploreMap() {
                     offset: new AMap.Pixel(0, -30),
                 })
 
-                    // 创建全局函数供 HTML 调用
                     ; (window as any)[`toggleFavorite_${attraction.id}`] = () => {
                         if (isFavorited(attraction.id)) {
                             removeFromFavorites(attraction.id)
@@ -468,7 +463,6 @@ export default function ExploreMap() {
                             addToFavorites(attraction.id, attraction.name, attraction.location.lng, attraction.location.lat, attraction.location.address)
                         }
                         infoWindow.close()
-                        // 重新打开以更新星标状态
                         marker.emit('click')
                     }
 
@@ -732,7 +726,6 @@ export default function ExploreMap() {
 
         map.setFitView(null, false, [60, 60, 60, 60])
 
-        // 关闭行程面板
         setShowTripRoutes(false)
     }
 

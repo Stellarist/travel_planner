@@ -133,10 +133,8 @@ export default function BudgetManager() {
     }
 
     const analyze = async (useQuery = false) => {
-        // 如果有查询文本，先解析它
         if (useQuery && analysisQuery) {
             await parseExpenseQueryWithBackend(analysisQuery)
-            // 等待解析完成后再继续分析
             await new Promise(resolve => setTimeout(resolve, 500))
         }
 
@@ -151,7 +149,6 @@ export default function BudgetManager() {
             const data = await apiPost('/api/expenses/analyze', body)
             if (data.success) {
                 const analysis = String(data.data.analysis)
-                // 导航到分析结果页面
                 navigate('/budget/analysis', {
                     state: {
                         analysis: {

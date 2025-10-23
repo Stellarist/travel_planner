@@ -59,7 +59,6 @@ export default function TripFavorites() {
             const data = await response.json();
 
             if (data.success) {
-                // 从列表中移除
                 setFavoriteTrips(prev => prev.filter(trip => trip.id !== tripId));
             } else {
                 alert(data.message || '取消收藏失败');
@@ -71,7 +70,6 @@ export default function TripFavorites() {
     };
 
     const viewTrip = (trip: TripPlan) => {
-        // 通过 state 传递行程数据到行程规划页面
         navigate('/trips/plan', { state: { tripPlan: trip, isFavorited: true } });
     };
 

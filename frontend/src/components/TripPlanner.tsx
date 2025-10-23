@@ -28,20 +28,17 @@ export default function TripPlanner() {
     const [showFavorites, setShowFavorites] = useState(false);
     const [favoriteTrips, setFavoriteTrips] = useState<TripPlan[]>([]);
 
-    // 从收藏夹进入时加载行程数据
     useEffect(() => {
         const state = location.state as { tripPlan?: TripPlan; isFavorited?: boolean };
         if (state?.tripPlan) {
             setTripPlan(state.tripPlan);
             setIsFavorited(state.isFavorited || false);
-            // 填充目的地和日期以便用户查看
             setDestination(state.tripPlan.destination);
             setStartDate(state.tripPlan.startDate);
             setEndDate(state.tripPlan.endDate);
         }
     }, [location]);
 
-    // 加载收藏的行程
     const loadFavoriteTrips = async () => {
         const token = localStorage.getItem('token');
         if (!token) return;
@@ -168,7 +165,7 @@ export default function TripPlanner() {
 
             if (data.success && data.trip) {
                 setTripPlan(data.trip);
-                setIsFavorited(false); // 新生成的行程默认未收藏
+                setIsFavorited(false);
             } else {
                 setError(data.message || '生成行程失败');
             }
@@ -194,7 +191,6 @@ export default function TripPlanner() {
         setIsFavorited(false);
     };
 
-    // 收藏/取消收藏行程
     const toggleFavorite = async () => {
         if (!tripPlan) return;
 
@@ -220,7 +216,6 @@ export default function TripPlanner() {
 
             if (data.success) {
                 setIsFavorited(!isFavorited);
-                // 刷新收藏列表
                 loadFavoriteTrips();
             } else {
                 setError(data.message || '操作失败');
@@ -231,7 +226,6 @@ export default function TripPlanner() {
         }
     };
 
-    // 从收藏夹中移除行程
     const removeFavoriteTrip = async (tripId: string) => {
         const token = localStorage.getItem('token');
         if (!token) return;
@@ -245,7 +239,6 @@ export default function TripPlanner() {
             const data = await response.json();
             if (data.success) {
                 setFavoriteTrips(prev => prev.filter(trip => trip.id !== tripId));
-                // 如果删除的是当前显示的行程，更新收藏状态
                 if (tripPlan?.id === tripId) {
                     setIsFavorited(false);
                 }
@@ -255,7 +248,6 @@ export default function TripPlanner() {
         }
     };
 
-    // 查看收藏的行程
     const viewFavoriteTrip = (trip: TripPlan) => {
         setTripPlan(trip);
         setIsFavorited(true);
