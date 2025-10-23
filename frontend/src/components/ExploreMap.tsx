@@ -6,10 +6,8 @@ import './ExploreMap.css'
 import type { Attraction } from '../shared/types'
 import { ATTRACTION_TYPES } from '../shared/constants'
 
-// 常见城市列表，用于无空格输入的前缀匹配（例如：上海美食、成都火锅）
-const HOT_CITIES = ['北京', '上海', '广州', '深圳', '杭州', '成都', '重庆', '武汉', '西安', '南京', '天津', '苏州', '青岛', '厦门', '长沙', '昆明', '大连', '郑州'] as const
-
 const AMAP_KEY = (configJson as any).frontend?.amapKey || 'YOUR_AMAP_KEY_HERE'
+const AMAP_SECURITY_CODE = (configJson as any).frontend?.amapSecurityJsCode || ''
 
 export default function ExploreMap() {
     const navigate = useNavigate()
@@ -17,6 +15,7 @@ export default function ExploreMap() {
     const amapRef = useRef<any>(null)
     const markersRef = useRef<any[]>([])
     const currentLocationMarkerRef = useRef<any>(null)
+    const areaMarkerRef = useRef<any>(null)
 
     const [map, setMap] = useState<any>(null)
     const [AMap, setAMap] = useState<any>(null)
@@ -28,18 +27,26 @@ export default function ExploreMap() {
     const [isLoading, setIsLoading] = useState(false)
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
     const [isLocating, setIsLocating] = useState(false)
+    const [suggestions, setSuggestions] = useState<Array<{ name: string; address: string; location?: { lng: number; lat: number } }>>([])
+    const [showSuggestions, setShowSuggestions] = useState(false)
+    const [activeSuggestIndex, setActiveSuggestIndex] = useState(0)
 
-    // 初始化地图
     useEffect(() => {
         if (AMAP_KEY === 'YOUR_AMAP_KEY_HERE') {
             console.error('请先在 config.json 中配置高德地图 API Key')
             return
         }
 
+        if (AMAP_SECURITY_CODE) {
+            (window as any)._AMapSecurityConfig = {
+                securityJsCode: AMAP_SECURITY_CODE,
+            }
+        }
+
         AMapLoader.load({
             key: AMAP_KEY,
             version: '2.0',
-            plugins: ['AMap.PlaceSearch', 'AMap.Geocoder', 'AMap.InfoWindow'],
+            plugins: ['AMap.PlaceSearch', 'AMap.Geocoder', 'AMap.InfoWindow', 'AMap.AutoComplete'],
         })
             .then((AMapInstance) => {
                 setAMap(AMapInstance)
@@ -47,7 +54,7 @@ export default function ExploreMap() {
 
                 const mapInstance = new AMapInstance.Map(mapRef.current, {
                     zoom: 11,
-                    center: [116.397428, 39.90923], // 北京中心
+                    center: [116.397428, 39.90923],
                     viewMode: '3D',
                     pitch: 50,
                 })
@@ -63,81 +70,151 @@ export default function ExploreMap() {
         }
     }, [])
 
-    // 搜索景点或导航到城市
     const handleSearch = () => {
         if (!map || !AMap) return
 
         const raw = searchInput.trim()
 
-        // 空输入：搜索当前城市热门景点
         if (!raw) {
             setIsLoading(true)
             clearMarkers()
             searchAttractionsByCity(city, '景点')
+            setShowSuggestions(false)
             return
         }
 
-        setIsLoading(true)
-        clearMarkers()
-
-        const geocoder = new AMap.Geocoder()
-
-        // 1) 处理包含空格的“城市 关键词”
-        const parts = raw.split(/\s+/)
-        if (parts.length >= 2) {
-            const candCity = parts[0]
-            const keyword = parts.slice(1).join(' ')
-            geocoder.getLocation(candCity, (status: string, result: any) => {
-                if (status === 'complete' && result.geocodes.length > 0) {
-                    const loc = result.geocodes[0].location
-                    setCity(candCity)
-                    map.setZoomAndCenter(11, [loc.lng, loc.lat])
-                    searchAttractionsByCity(candCity, keyword || '景点')
-                } else {
-                    // 城市无效，退化为当前城市关键词搜索
-                    searchAttractionsByCity(city, raw)
-                }
-            })
+        if (suggestions.length > 0) {
+            selectSuggestion(suggestions[0])
             return
         }
 
-        // 2) 无空格时尝试用常见城市前缀匹配，例如“上海美食”、“成都火锅”
-        const matchCity = HOT_CITIES.find(cn => raw.startsWith(cn))
-        if (matchCity) {
-            const keyword = raw.slice(matchCity.length).trim() || '景点'
-            geocoder.getLocation(matchCity, (status: string, result: any) => {
-                if (status === 'complete' && result.geocodes.length > 0) {
-                    const loc = result.geocodes[0].location
-                    setCity(matchCity)
-                    map.setZoomAndCenter(11, [loc.lng, loc.lat])
-                    searchAttractionsByCity(matchCity, keyword)
-                } else {
-                    searchAttractionsByCity(city, raw)
-                }
-            })
-            return
-        }
-
-        // 3) 简短输入（<=4个字）优先按城市解析，否则作为关键词
-        if (raw.length <= 4) {
-            geocoder.getLocation(raw, (status: string, result: any) => {
-                if (status === 'complete' && result.geocodes.length > 0) {
-                    const loc = result.geocodes[0].location
-                    setCity(raw)
-                    map.setZoomAndCenter(11, [loc.lng, loc.lat])
-                    searchAttractionsByCity(raw, '景点')
-                } else {
-                    searchAttractionsByCity(city, raw)
-                }
-            })
-            return
-        }
-
-        // 4) 其余情况：按当前城市的关键词搜索
-        searchAttractionsByCity(city, raw)
+        fetchSuggestions(raw)
     }
 
-    // 搜索指定城市的景点
+    const fetchSuggestions = (keyword: string) => {
+        if (!AMap) return
+        const auto = new AMap.AutoComplete({ city })
+        auto.search(keyword, (status: string, result: any) => {
+            if (status === 'complete' && result.tips?.length) {
+                const list = result.tips
+                    .filter((t: any) => t.location || t.name)
+                    .slice(0, 8)
+                    .map((t: any) => ({
+                        name: t.name,
+                        address: t.district || t.address || '',
+                        location: t.location ? { lng: t.location.lng, lat: t.location.lat } : undefined,
+                    }))
+                setSuggestions(list)
+                setActiveSuggestIndex(0)
+                setShowSuggestions(true)
+
+                if (list.length > 0) {
+                    selectSuggestion(list[0])
+                }
+            } else {
+                setSuggestions([])
+                setShowSuggestions(false)
+                setIsLoading(true)
+                clearMarkers()
+                searchAttractionsByCity(city, keyword)
+            }
+        })
+    }
+
+    const selectSuggestion = (item: { name: string; address: string; location?: { lng: number; lat: number } }) => {
+        if (!AMap || !map) return
+        setShowSuggestions(false)
+        setSearchInput(item.name)
+
+        const openInfoAndSearch = (lng: number, lat: number) => {
+            if (areaMarkerRef.current) {
+                try { areaMarkerRef.current.setMap(null) } catch { }
+                areaMarkerRef.current = null
+            }
+            const marker = new AMap.Marker({ position: [lng, lat], title: item.name })
+            marker.setMap(map)
+            areaMarkerRef.current = marker
+            map.setZoomAndCenter(12, [lng, lat])
+
+            const navUrl = getNavUrl(lng, lat, item.name)
+            const info = new AMap.InfoWindow({
+                content: `
+                  <div style="padding:10px; min-width:220px;">
+                    <h3 style="margin:0 0 6px 0; font-size:16px; color:#000;">${item.name}</h3>
+                    <p style="margin:0 0 8px 0; color:#333;">${item.address || ''}</p>
+                    <a href="${navUrl}" target="_blank" style="display:inline-block; padding:6px 10px; background:#667eea; color:#fff; border-radius:4px; text-decoration:none;">导航</a>
+                  </div>
+                `,
+                offset: new AMap.Pixel(0, -30)
+            })
+            info.open(map, [lng, lat])
+
+            searchNearbyAttractions([lng, lat])
+        }
+
+        if (item.location) {
+            openInfoAndSearch(item.location.lng, item.location.lat)
+        } else {
+            const geocoder = new AMap.Geocoder()
+            geocoder.getLocation(item.name, (status: string, result: any) => {
+                if (status === 'complete' && result.geocodes?.length) {
+                    const loc = result.geocodes[0].location
+                    openInfoAndSearch(loc.lng, loc.lat)
+                }
+            })
+        }
+    }
+
+    const getNavUrl = (lng: number, lat: number, name?: string) => {
+        const to = `${lng},${lat},${encodeURIComponent(name || '目的地')}`
+        return `https://uri.amap.com/navigation?to=${to}&mode=car&policy=1&src=travel_planner&callnative=0`
+    }
+
+    const searchNearbyAttractions = (center: [number, number]) => {
+        if (!AMap || !map) return
+        clearMarkers()
+
+        const placeSearch = new AMap.PlaceSearch({ pageSize: 20 })
+        let kw = '景点'
+        if (selectedTypes.length > 0) {
+            const typeKeywords = selectedTypes
+                .map(t => ATTRACTION_TYPES.find(at => at.value === t)?.keywords)
+                .filter(Boolean)
+                .join('|')
+            kw = `景点 ${typeKeywords}`
+        }
+        placeSearch.searchNearBy(kw, center, 5000, (status: string, result: any) => {
+            if (status === 'complete' && result.poiList?.pois) {
+                const pois = result.poiList.pois
+                const list: Attraction[] = pois.map((poi: any, idx: number) => ({
+                    id: poi.id || `poi-${idx}`,
+                    name: poi.name,
+                    type: poi.type || '景点',
+                    location: { lng: poi.location.lng, lat: poi.location.lat, address: poi.address || '' } as any,
+                    rating: 3.5 + Math.random() * 1.5,
+                    tags: poi.type ? poi.type.split(';') : [],
+                    description: poi.address || '',
+                    estimatedDuration: 2,
+                    distance: poi.distance ? poi.distance / 1000 : undefined,
+                }))
+                setAttractions(list)
+                addMarkers(list)
+
+                try {
+                    const all = [...markersRef.current]
+                    if (areaMarkerRef.current) all.push(areaMarkerRef.current)
+                    if ((map as any).setFitView && all.length > 0) {
+                        ; (map as any).setFitView(all, false, [60, 60, 60, 360])
+                    } else if (list.length > 0) {
+                        map.setCenter([list[0].location.lng, list[0].location.lat])
+                    }
+                } catch { }
+            } else {
+                setAttractions([])
+            }
+        })
+    }
+
     const searchAttractionsByCity = (targetCity: string, keyword: string) => {
         if (!map || !AMap) return
 
@@ -147,7 +224,6 @@ export default function ExploreMap() {
             pageIndex: 1,
         })
 
-        // 构建搜索关键词
         let searchKeyword = keyword
         if (selectedTypes.length > 0) {
             const typeKeywords = selectedTypes
@@ -181,13 +257,10 @@ export default function ExploreMap() {
                 setAttractions(attractionList)
                 addMarkers(attractionList)
 
-                // 调整地图视野：优先根据标记自适应视野
                 if (markersRef.current.length > 0 && typeof map.setFitView === 'function') {
                     try {
-                        // 给右侧预留更多内边距以避免被侧边栏遮挡
                         map.setFitView(markersRef.current, false, [60, 60, 60, 360])
                     } catch (e) {
-                        // 兜底：以首个点为中心
                         const center = [attractionList[0].location.lng, attractionList[0].location.lat]
                         map.setCenter(center)
                     }
@@ -197,17 +270,14 @@ export default function ExploreMap() {
                 }
             } else {
                 setAttractions([])
-                console.log('搜索结果为空')
             }
         })
     }
 
-    // 应用筛选
     const applyFilters = () => {
         handleSearch()
     }
 
-    // 添加标记
     const addMarkers = (attractionList: Attraction[]) => {
         if (!map || !AMap) return
 
@@ -226,17 +296,19 @@ export default function ExploreMap() {
                 setSelectedAttraction(attraction)
                 map.setCenter([attraction.location.lng, attraction.location.lat])
 
+                const navUrl = getNavUrl(attraction.location.lng, attraction.location.lat, attraction.name)
                 const infoWindow = new AMap.InfoWindow({
                     content: `
             <div style="padding: 10px; min-width: 200px;">
-              <h3 style="margin: 0 0 8px 0; font-size: 16px;">${attraction.name}</h3>
-              <p style="margin: 4px 0; color: #666; font-size: 14px;">
+              <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #000;">${attraction.name}</h3>
+              <p style="margin: 4px 0; color: #333; font-size: 14px;">
                 ⭐ ${attraction.rating.toFixed(1)} 分
               </p>
-              <p style="margin: 4px 0; color: #666; font-size: 14px;">
+              <p style="margin: 4px 0; color: #333; font-size: 14px;">
                 📍 ${attraction.location.address}
               </p>
-              <p style="margin: 8px 0 0 0; font-size: 12px; color: #999;">
+              <a href="${navUrl}" target="_blank" style="display:inline-block; padding:6px 10px; background:#667eea; color:#fff; border-radius:4px; text-decoration:none; margin-top:8px;">导航</a>
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">
                 点击侧边栏查看详情
               </p>
             </div>
@@ -252,31 +324,26 @@ export default function ExploreMap() {
         })
     }
 
-    // 清除所有标记
     const clearMarkers = () => {
         markersRef.current.forEach(marker => marker.setMap(null))
         markersRef.current = []
     }
 
-    // 切换景点类型筛选
     const toggleType = (type: string) => {
         setSelectedTypes(prev =>
             prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
         )
     }
 
-    // 定位到某个景点
     const locateAttraction = (attraction: Attraction) => {
         if (!map) return
         setSelectedAttraction(attraction)
         map.setZoomAndCenter(15, [attraction.location.lng, attraction.location.lat])
     }
 
-    // 定位到当前位置
     const locateCurrentPosition = () => {
         if (!map || !AMap) return
 
-        // 先清除已有的景点标记与上一次定位标记
         clearMarkers()
         if (currentLocationMarkerRef.current) {
             try { currentLocationMarkerRef.current.setMap(null) } catch { }
@@ -285,13 +352,12 @@ export default function ExploreMap() {
 
         setIsLocating(true)
 
-        // 使用高德地图的定位插件
         AMap.plugin('AMap.Geolocation', () => {
             const geolocation = new AMap.Geolocation({
-                enableHighAccuracy: true, // 是否使用高精度定位
-                timeout: 10000, // 超时时间
-                buttonPosition: 'RB', // 定位按钮的停靠位置
-                zoomToAccuracy: true, // 定位成功后是否自动调整地图视野到定位点
+                enableHighAccuracy: true,
+                timeout: 10000,
+                buttonPosition: 'RB',
+                zoomToAccuracy: true,
             })
 
             geolocation.getCurrentPosition((status: string, result: any) => {
@@ -302,10 +368,8 @@ export default function ExploreMap() {
                     const address = result.formattedAddress || ''
                     const cityName = result.addressComponent?.city || result.addressComponent?.province || '当前位置'
 
-                    // 更新城市
                     setCity(cityName.replace('市', ''))
 
-                    // 创建当前位置标记
                     const marker = new AMap.Marker({
                         position: [lng, lat],
                         icon: new AMap.Icon({
@@ -320,18 +384,16 @@ export default function ExploreMap() {
                         content: `
                                 <div style="padding: 10px;">
                                     <h3 style="margin: 0 0 8px 0; color: #000; font-weight: 600;">📍 我的位置</h3>
-                                    <p style="margin: 0; color: #666;">${address}</p>
+                                    <p style="margin: 0; color: #333;">${address}</p>
                                 </div>
                             `,
                         offset: new AMap.Pixel(0, -30),
                     })
 
                     marker.setMap(map)
-                    // 记录当前定位标记以便下次清除
                     currentLocationMarkerRef.current = marker
                     infoWindow.open(map, [lng, lat])
 
-                    // 移动地图到当前位置并自适应视野
                     try {
                         if (typeof map.setFitView === 'function') {
                             map.setFitView([marker], false, [80, 80, 80, 80])
@@ -342,7 +404,6 @@ export default function ExploreMap() {
                         map.setZoomAndCenter(15, [lng, lat])
                     }
 
-                    // 搜索附近景点
                     searchAttractionsByCity(cityName.replace('市', ''), '景点')
                 } else {
                     console.error('定位失败:', result)
@@ -352,7 +413,6 @@ export default function ExploreMap() {
         })
     }
 
-    // 初始搜索
     useEffect(() => {
         if (map && AMap) {
             searchAttractionsByCity(city, '景点')
@@ -369,12 +429,70 @@ export default function ExploreMap() {
                 <div className="search-area">
                     <input
                         type="text"
-                        placeholder="输入城市或景点名... (如: 上海 / 故宫)"
+                        placeholder="搜索区域或景点 (如: 故宫 / 西湖)"
                         value={searchInput}
-                        onChange={(e) => setSearchInput(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        onChange={(e) => {
+                            setSearchInput(e.target.value)
+                            const val = e.target.value.trim()
+                            if (val && AMap) {
+                                const auto = new AMap.AutoComplete({ city })
+                                auto.search(val, (status: string, result: any) => {
+                                    if (status === 'complete' && result.tips?.length) {
+                                        const list = result.tips
+                                            .filter((t: any) => t.location || t.name)
+                                            .slice(0, 8)
+                                            .map((t: any) => ({
+                                                name: t.name,
+                                                address: t.district || t.address || '',
+                                                location: t.location ? { lng: t.location.lng, lat: t.location.lat } : undefined,
+                                            }))
+                                        setSuggestions(list)
+                                        setActiveSuggestIndex(0)
+                                        setShowSuggestions(true)
+                                    } else {
+                                        setSuggestions([])
+                                        setShowSuggestions(false)
+                                    }
+                                })
+                            } else {
+                                setShowSuggestions(false)
+                            }
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                if (showSuggestions && suggestions.length > 0) {
+                                    selectSuggestion(suggestions[activeSuggestIndex])
+                                } else {
+                                    handleSearch()
+                                }
+                            }
+                            if (e.key === 'ArrowDown' && suggestions.length) {
+                                e.preventDefault()
+                                setActiveSuggestIndex(prev => Math.min(prev + 1, suggestions.length - 1))
+                            }
+                            if (e.key === 'ArrowUp' && suggestions.length) {
+                                e.preventDefault()
+                                setActiveSuggestIndex(prev => Math.max(prev - 1, 0))
+                            }
+                            if (e.key === 'Escape') setShowSuggestions(false)
+                        }}
                         className="search-input-unified"
                     />
+                    {showSuggestions && suggestions.length > 0 && (
+                        <div className="suggestions-dropdown">
+                            {suggestions.map((sug, i) => (
+                                <div
+                                    key={i}
+                                    className={`suggestion-item ${i === activeSuggestIndex ? 'active' : ''}`}
+                                    onClick={() => selectSuggestion(sug)}
+                                    onMouseEnter={() => setActiveSuggestIndex(i)}
+                                >
+                                    <div className="suggestion-name">{sug.name}</div>
+                                    <div className="suggestion-address">{sug.address}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     <button onClick={handleSearch} className="search-button" disabled={isLoading}>
                         {isLoading ? '搜索中...' : '🔍 搜索'}
                     </button>
