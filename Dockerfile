@@ -61,7 +61,7 @@ COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 COPY config.json /app/config.json
  
 # 复制启动脚本并赋予执行权限
-COPY start.sh /app/run.sh
+COPY run.sh /app/run.sh
 RUN chmod +x /app/run.sh
 
 # 创建日志目录

@@ -323,8 +323,8 @@ cd travel_planner
 **Linux/Mac 用户：**
 
 ```bash
-chmod +x start-dev.sh
-./start-dev.sh
+chmod +x run.sh
+./run.sh
 ```
 
 启动脚本功能：
@@ -702,7 +702,6 @@ travel_planner/
 │   └── package.json       # 前端依赖
 ├── config.json            # 配置文件
 ├── go.mod                 # Go 依赖
-├── start.ps1              # 启动脚本
 └── README.md              # 项目文档
 ```
 
