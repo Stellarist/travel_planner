@@ -6,6 +6,9 @@ import './ExploreMap.css'
 import type { Attraction } from '../shared/types'
 import { ATTRACTION_TYPES } from '../shared/constants'
 
+// 常见城市列表，用于无空格输入的前缀匹配（例如：上海美食、成都火锅）
+const HOT_CITIES = ['北京', '上海', '广州', '深圳', '杭州', '成都', '重庆', '武汉', '西安', '南京', '天津', '苏州', '青岛', '厦门', '长沙', '昆明', '大连', '郑州'] as const
+
 const AMAP_KEY = (configJson as any).frontend?.amapKey || 'YOUR_AMAP_KEY_HERE'
 
 export default function ExploreMap() {
@@ -64,8 +67,10 @@ export default function ExploreMap() {
     const handleSearch = () => {
         if (!map || !AMap) return
 
+        const raw = searchInput.trim()
+
         // 空输入：搜索当前城市热门景点
-        if (!searchInput.trim()) {
+        if (!raw) {
             setIsLoading(true)
             clearMarkers()
             searchAttractionsByCity(city, '景点')
@@ -75,30 +80,61 @@ export default function ExploreMap() {
         setIsLoading(true)
         clearMarkers()
 
-        // 判断输入是否为城市名（简单判断：长度较短且不包含"景点"等关键词）
-        const isCitySearch = searchInput.length <= 4 && !searchInput.includes('景点') && !searchInput.includes('公园')
+        const geocoder = new AMap.Geocoder()
 
-        if (isCitySearch) {
-            // 城市导航模式：定位到城市中心
-            const geocoder = new AMap.Geocoder()
-            geocoder.getLocation(searchInput, (status: string, result: any) => {
+        // 1) 处理包含空格的“城市 关键词”
+        const parts = raw.split(/\s+/)
+        if (parts.length >= 2) {
+            const candCity = parts[0]
+            const keyword = parts.slice(1).join(' ')
+            geocoder.getLocation(candCity, (status: string, result: any) => {
                 if (status === 'complete' && result.geocodes.length > 0) {
-                    const location = result.geocodes[0].location
-                    setCity(searchInput)
-                    // 初步定位到城市中心
-                    map.setZoomAndCenter(11, [location.lng, location.lat])
-
-                    // 自动搜索该城市的景点
-                    searchAttractionsByCity(searchInput, '景点')
+                    const loc = result.geocodes[0].location
+                    setCity(candCity)
+                    map.setZoomAndCenter(11, [loc.lng, loc.lat])
+                    searchAttractionsByCity(candCity, keyword || '景点')
                 } else {
-                    setIsLoading(false)
-                    console.log('未找到该城市')
+                    // 城市无效，退化为当前城市关键词搜索
+                    searchAttractionsByCity(city, raw)
                 }
             })
-        } else {
-            // 景点搜索模式
-            searchAttractionsByCity(city, searchInput)
+            return
         }
+
+        // 2) 无空格时尝试用常见城市前缀匹配，例如“上海美食”、“成都火锅”
+        const matchCity = HOT_CITIES.find(cn => raw.startsWith(cn))
+        if (matchCity) {
+            const keyword = raw.slice(matchCity.length).trim() || '景点'
+            geocoder.getLocation(matchCity, (status: string, result: any) => {
+                if (status === 'complete' && result.geocodes.length > 0) {
+                    const loc = result.geocodes[0].location
+                    setCity(matchCity)
+                    map.setZoomAndCenter(11, [loc.lng, loc.lat])
+                    searchAttractionsByCity(matchCity, keyword)
+                } else {
+                    searchAttractionsByCity(city, raw)
+                }
+            })
+            return
+        }
+
+        // 3) 简短输入（<=4个字）优先按城市解析，否则作为关键词
+        if (raw.length <= 4) {
+            geocoder.getLocation(raw, (status: string, result: any) => {
+                if (status === 'complete' && result.geocodes.length > 0) {
+                    const loc = result.geocodes[0].location
+                    setCity(raw)
+                    map.setZoomAndCenter(11, [loc.lng, loc.lat])
+                    searchAttractionsByCity(raw, '景点')
+                } else {
+                    searchAttractionsByCity(city, raw)
+                }
+            })
+            return
+        }
+
+        // 4) 其余情况：按当前城市的关键词搜索
+        searchAttractionsByCity(city, raw)
     }
 
     // 搜索指定城市的景点
@@ -168,11 +204,7 @@ export default function ExploreMap() {
 
     // 应用筛选
     const applyFilters = () => {
-        if (!searchInput.trim()) {
-            searchAttractionsByCity(city, '景点')
-        } else {
-            handleSearch()
-        }
+        handleSearch()
     }
 
     // 添加标记
@@ -346,18 +378,18 @@ export default function ExploreMap() {
                     <button onClick={handleSearch} className="search-button" disabled={isLoading}>
                         {isLoading ? '搜索中...' : '🔍 搜索'}
                     </button>
+                    <button
+                        className="locate-button"
+                        onClick={locateCurrentPosition}
+                        disabled={isLocating}
+                        title="定位到我的位置"
+                    >
+                        {isLocating ? '⏳ 定位中' : '🎯 定位'}
+                    </button>
                 </div>
                 <div className="current-city">
                     📍 {city}
                 </div>
-                <button
-                    className="locate-button"
-                    onClick={locateCurrentPosition}
-                    disabled={isLocating}
-                    title="定位到我的位置"
-                >
-                    {isLocating ? '⏳' : '🎯'}
-                </button>
                 <button
                     className="sidebar-toggle"
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}

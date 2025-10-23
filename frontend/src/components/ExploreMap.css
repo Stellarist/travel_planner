@@ -76,15 +76,18 @@
 }
 
 .locate-button {
-    padding: 8px 12px;
+    padding: 10px 16px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 18px;
+    font-size: 14px;
     transition: all 0.2s;
     line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .locate-button:hover:not(:disabled) {
