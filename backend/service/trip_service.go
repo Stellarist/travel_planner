@@ -21,8 +21,6 @@ func GenerateTripPlan(ctx context.Context, req *TripPlanRequest) (*TripPlan, err
 	// 尝试解析返回的 JSON
 	var plan TripPlan
 	if err := json.Unmarshal([]byte(content), &plan); err != nil {
-		// 记录原始内容以便调试
-		fmt.Printf("Failed to parse model response. Raw content:\n%s\n", content)
 		return nil, fmt.Errorf("parse plan: %w (raw: %s)", err, content[:min(len(content), 200)])
 	}
 

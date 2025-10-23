@@ -569,7 +569,7 @@ export default function ExploreMap() {
         <div className="explore-container">
             <header className="explore-header">
                 <button className="back-button" onClick={() => navigate('/')}>
-                    ← 返回
+                    ← 返回主页
                 </button>
                 <h1>探索景点</h1>
                 <div className="search-area">

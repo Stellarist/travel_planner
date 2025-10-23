@@ -106,7 +106,7 @@ func AnalyzeExpenses(ctx context.Context, username string, list []*ExpenseRecord
 	b, _ := json.Marshal(payload)
 	reqURL := strings.TrimRight(cfg.BaseURL, "/") + "/chat/completions"
 	// small inline HTTP call similar to ai_service.go
-	client := &http.Client{Timeout: 20 * time.Second}
+	client := &http.Client{Timeout: 60 * time.Second}
 	httpReq, err := http.NewRequestWithContext(ctx, "POST", reqURL, bytes.NewReader(b))
 	if err != nil {
 		return "", err

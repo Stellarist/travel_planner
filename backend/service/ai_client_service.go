@@ -21,11 +21,6 @@ func CallModel(ctx context.Context, prompt string) (string, error) {
 		return "", errors.New("model not configured")
 	}
 
-	fmt.Printf("=== 调用大模型 ===\n")
-	fmt.Printf("模型: %s\n", cfg.Model)
-	fmt.Printf("API: %s\n", cfg.BaseURL)
-	fmt.Printf("Prompt 长度: %d 字符\n", len(prompt))
-
 	payload := map[string]interface{}{
 		"model": cfg.Model,
 		"messages": []map[string]interface{}{
@@ -39,7 +34,6 @@ func CallModel(ctx context.Context, prompt string) (string, error) {
 	}
 
 	reqURL := strings.TrimRight(cfg.BaseURL, "/") + "/chat/completions"
-	fmt.Printf("请求 URL: %s\n", reqURL)
 
 	// 增加超时时间到 90 秒，因为生成行程需要较长时间
 	reqCtx, cancel := context.WithTimeout(ctx, 90*time.Second)
@@ -55,7 +49,6 @@ func CallModel(ctx context.Context, prompt string) (string, error) {
 	// HTTP Client 超时设置略大于 context 超时
 	client := &http.Client{Timeout: 95 * time.Second}
 
-	fmt.Printf("开始请求... (超时: 90秒)\n")
 	startTime := time.Now()
 
 	resp, err := client.Do(httpReq)
@@ -64,8 +57,6 @@ func CallModel(ctx context.Context, prompt string) (string, error) {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
-
-	fmt.Printf("收到响应 (耗时: %.2f秒), 状态码: %d\n", time.Since(startTime).Seconds(), resp.StatusCode)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

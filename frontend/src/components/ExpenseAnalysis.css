@@ -1,0 +1,132 @@
+.expense-analysis-page {
+    min-height: 100vh;
+    background: #f6f8fb;
+    padding: 2rem;
+}
+
+.analysis-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.analysis-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.back-button {
+    background: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    color: #333;
+}
+
+.back-button:hover {
+    background: #f0f0f0;
+    transform: translateX(-2px);
+}
+
+.analysis-header h2 {
+    color: white;
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.analysis-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.analysis-filters {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.analysis-filters h3 {
+    color: #333;
+    font-size: 1.2rem;
+    margin: 0 0 1rem 0;
+}
+
+.filter-item {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.filter-label {
+    color: #666;
+    font-weight: 600;
+}
+
+.filter-value {
+    color: #333;
+}
+
+.analysis-result h3 {
+    color: #333;
+    font-size: 1.3rem;
+    margin: 0 0 1.5rem 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.analysis-text {
+    color: #555;
+    line-height: 1.8;
+    font-size: 1rem;
+}
+
+.analysis-text p {
+    margin: 0 0 1rem 0;
+    white-space: pre-wrap;
+}
+
+.analysis-text p:last-child {
+    margin-bottom: 0;
+}
+
+.no-analysis {
+    background: white;
+    border-radius: 12px;
+    padding: 4rem 2rem;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.no-analysis p {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .expense-analysis-page {
+        padding: 1rem;
+    }
+
+    .analysis-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .analysis-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .analysis-content {
+        padding: 1.5rem;
+    }
+}

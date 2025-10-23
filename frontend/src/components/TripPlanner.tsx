@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getApiUrl, useSpeechRecognition, getDefaultDateRange, formatDate, apiPost } from '../shared/utils';
 import '../styles/common.css';
 import './TripPlanner.css';
@@ -8,6 +8,7 @@ import { AVAILABLE_PREFERENCES } from '../shared/constants';
 
 export default function TripPlanner() {
     const location = useLocation();
+    const navigate = useNavigate();
     const defaultDates = getDefaultDateRange(3)
 
     const [destination, setDestination] = useState('');
@@ -268,6 +269,9 @@ export default function TripPlanner() {
         <div className="trip-planner-page">
             <div className="trip-planner">
                 <div className="planner-header">
+                    <button className="back-home-button" onClick={() => navigate('/dashboard')}>
+                        ← 返回主页
+                    </button>
                     <h2>🗺️ 智能行程规划</h2>
                     <p>告诉我你的旅行想法，让 AI 为你定制专属行程</p>
                     <button

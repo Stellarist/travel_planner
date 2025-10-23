@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import '../styles/common.css'
 import './TripPlanner.css'
 import './BudgetManager.css'
@@ -7,6 +8,7 @@ import type { Expense, ParsedExpenseQuery } from '../shared/types'
 import { CATEGORY_MAP, CATEGORY_COLORS, BUDGET_ITEMS_PER_PAGE, CATEGORY_NAMES } from '../shared/constants'
 
 export default function BudgetManager() {
+    const navigate = useNavigate()
     const [list, setList] = useState<Expense[]>([])
     const [category, setCategory] = useState('食物')
     const [amount, setAmount] = useState<number | ''>('')
@@ -17,9 +19,9 @@ export default function BudgetManager() {
     const [filterFrom, setFilterFrom] = useState(getDateDaysAgo(30))
     const [filterTo, setFilterTo] = useState(getTodayDate())
     const [analysisQuery, setAnalysisQuery] = useState('')
-    const [analysisResult, setAnalysisResult] = useState<string | null>(null)
     const [currentPage, setCurrentPage] = useState(1)
     const [shouldAutoApply, setShouldAutoApply] = useState(false)
+    const [isAnalyzing, setIsAnalyzing] = useState(false)
 
     const getCategoryName = (cat: string) => CATEGORY_MAP[cat] || cat
     const getCategoryColor = (cat: string) => CATEGORY_COLORS[cat] || '#999'
@@ -131,15 +133,43 @@ export default function BudgetManager() {
     }
 
     const analyze = async (useQuery = false) => {
-        const params: Record<string, string | undefined> = {}
-        if (filterCategory) params.category = filterCategory
-        if (filterFrom) params.from = filterFrom
-        if (filterTo) params.to = filterTo
-        if (useQuery && analysisQuery) params.q = analysisQuery
-        const data = await apiGet('/api/expenses/analyze', params)
-        if (data.success) {
-            setAnalysisResult(String(data.data.analysis))
-            if (srListening) stop()
+        // 如果有查询文本，先解析它
+        if (useQuery && analysisQuery) {
+            await parseExpenseQueryWithBackend(analysisQuery)
+            // 等待解析完成后再继续分析
+            await new Promise(resolve => setTimeout(resolve, 500))
+        }
+
+        setIsAnalyzing(true)
+        try {
+            const body: Record<string, any> = {}
+            if (filterCategory) body.category = filterCategory
+            if (filterFrom) body.from = filterFrom
+            if (filterTo) body.to = filterTo
+            if (useQuery && analysisQuery) body.q = analysisQuery
+
+            const data = await apiPost('/api/expenses/analyze', body)
+            if (data.success) {
+                const analysis = String(data.data.analysis)
+                // 导航到分析结果页面
+                navigate('/budget/analysis', {
+                    state: {
+                        analysis: {
+                            analysis,
+                            query: useQuery ? analysisQuery : undefined,
+                            category: filterCategory,
+                            from: filterFrom,
+                            to: filterTo
+                        }
+                    }
+                })
+                if (srListening) stop()
+            }
+        } catch (error) {
+            console.error('分析失败:', error)
+            alert('分析失败，请稍后重试')
+        } finally {
+            setIsAnalyzing(false)
         }
     }
 
@@ -173,6 +203,9 @@ export default function BudgetManager() {
         <div className="trip-planner-page">
             <div className="trip-planner">
                 <div className="planner-header">
+                    <button className="back-home-button" onClick={() => navigate('/dashboard')}>
+                        ← 返回主页
+                    </button>
                     <h2>💰 预算与开销管理</h2>
                     <p>记录并分析你的旅行支出</p>
                 </div>
@@ -201,7 +234,13 @@ export default function BudgetManager() {
                             <button className={`voice-button ${isListening ? 'listening' : ''}`} onClick={() => toggle()}>
                                 {isListening ? '⏹ 停止录音' : '🎤 开始语音'}
                             </button>
-                            <button className="analyze-button" onClick={() => analyze(true)}>✨ 开始分析</button>
+                            <button
+                                className="analyze-button"
+                                onClick={() => analyze(true)}
+                                disabled={isAnalyzing}
+                            >
+                                {isAnalyzing ? '⏳ AI 正在分析...' : '✨ 开始分析'}
+                            </button>
                         </div>
                     </div>
 
@@ -308,13 +347,6 @@ export default function BudgetManager() {
                             )}
                         </div>
                     </div>
-
-                    {analysisResult && (
-                        <div className="analysis-box" style={{ marginTop: 12 }}>
-                            <h4>AI 分析</h4>
-                            <pre className="analysis-pre">{analysisResult}</pre>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

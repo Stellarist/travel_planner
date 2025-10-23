@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard'
 import TripPlanner from './components/TripPlanner'
 import BudgetManager from './components/BudgetManager'
 import ExploreMap from './components/ExploreMap'
+import ExpenseAnalysis from './components/ExpenseAnalysis'
 import './App.css'
 import type { User } from './shared/types'
 
@@ -58,6 +59,7 @@ function App() {
       <Route path="/trips/plan" element={user ? <TripPlanner /> : <Navigate to="/" replace />} />
       <Route path="/planner" element={user ? <TripPlanner /> : <Navigate to="/" replace />} />
       <Route path="/budget" element={user ? <BudgetManager /> : <Navigate to="/" replace />} />
+      <Route path="/budget/analysis" element={user ? <ExpenseAnalysis /> : <Navigate to="/" replace />} />
       <Route path="/explore" element={user ? <ExploreMap /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

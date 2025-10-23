@@ -30,7 +30,7 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	expenseGroup.Use(service.AuthMiddleware())
 	expenseGroup.POST("", CreateExpenseHandler)
 	expenseGroup.GET("", ListExpensesHandler)
-	expenseGroup.GET("/analyze", AnalyzeExpensesHandler)
+	expenseGroup.POST("/analyze", AnalyzeExpensesHandler)
 
 	exploreGroup := r.Group("/api/favorites")
 	exploreGroup.Use(service.AuthMiddleware())

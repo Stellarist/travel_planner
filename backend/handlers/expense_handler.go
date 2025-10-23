@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -128,23 +129,46 @@ func AnalyzeExpensesHandler(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	// 增加超时时间到 90 秒，因为 AI 分析需要较长时间
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 90*time.Second)
 	defer cancel()
 
-	// allow optional filters and a free-text query for the AI
-	category := c.Query("category")
-	from := c.Query("from")
-	to := c.Query("to")
-	userQuery := c.Query("q")
+	// 从 POST body 中读取参数
+	var req struct {
+		Category string `json:"category"`
+		From     string `json:"from"`
+		To       string `json:"to"`
+		Query    string `json:"q"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		fmt.Printf("解析请求 body 失败: %v\n", err)
+		// 如果 body 为空或解析失败，使用默认值
+		req = struct {
+			Category string `json:"category"`
+			From     string `json:"from"`
+			To       string `json:"to"`
+			Query    string `json:"q"`
+		}{}
+	}
+
+	fmt.Printf("收到分析请求: category=%s, from=%s, to=%s, query=%s\n", req.Category, req.From, req.To, req.Query)
+
+	category := req.Category
+	from := req.From
+	to := req.To
+	userQuery := req.Query
 
 	list, err := service.GetExpenses(ctx, username)
 	if err != nil {
+		fmt.Printf("获取消费记录失败: %v\n", err)
 		api.RespondError(c, http.StatusInternalServerError, "获取失败")
 		return
 	}
+	fmt.Printf("成功获取 %d 条消费记录\n", len(list))
 
 	// apply same filtering logic as ListExpensesHandler
 	filtered := make([]*service.ExpenseRecord, 0, len(list))
+	fmt.Printf("开始过滤记录...\n")
 	var fromT, toT time.Time
 	var errf error
 	if from != "" {
@@ -179,7 +203,9 @@ func AnalyzeExpensesHandler(c *gin.Context) {
 		}
 		filtered = append(filtered, e)
 	}
+	fmt.Printf("过滤后剩余 %d 条记录\n", len(filtered))
 
+	fmt.Printf("准备调用 AI 分析...\n")
 	analysis, err := service.AnalyzeExpenses(ctx, username, filtered, userQuery)
 	if err != nil {
 		api.RespondError(c, http.StatusInternalServerError, "分析失败: "+err.Error())
