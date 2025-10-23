@@ -8,6 +8,9 @@ WORKDIR /app
 # 复制配置文件到项目根目录（前端构建时需要）
 COPY config.json ./
 
+# 在 Docker 环境中，修改前端配置为空字符串（使用相对路径）
+RUN sed -i 's|"http://127.0.0.1:3000"|""|g' config.json
+
 WORKDIR /app/frontend
 
 # 复制前端依赖文件
