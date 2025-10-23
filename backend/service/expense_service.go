@@ -93,13 +93,24 @@ func AnalyzeExpenses(ctx context.Context, username string, list []*ExpenseRecord
 	// include optional user query to guide the analysis
 	queryPrefix := ""
 	if userQuery != "" {
-		queryPrefix = "User request: " + userQuery + "\n\n"
+		queryPrefix = "用户需求: " + userQuery + "\n\n"
 	}
+
+	prompt := queryPrefix + `请分析以下旅行消费记录，并提供预算建议和分类统计。
+
+**请使用 Markdown 格式返回分析结果**，包括：
+1. 消费概览（总金额、平均消费等）
+2. 分类统计（各类别的金额和占比）
+3. 消费趋势分析
+4. 预算建议和优化方案
+
+消费记录：
+` + summary
 
 	payload := map[string]interface{}{
 		"model": cfg.Model,
 		"messages": []map[string]interface{}{
-			{"role": "user", "content": queryPrefix + "Please analyze the following travel expenses and provide budget suggestions and categorization.\n\n" + summary},
+			{"role": "user", "content": prompt},
 		},
 	}
 

@@ -350,11 +350,18 @@ func extractDateInfo(text string) (startDate, endDate string, duration int) {
 		}
 	}
 
-	// 5. 如果有开始日期和持续天数，计算结束日期（含起止，持续N天则结束日=开始日+N-1）
+	// 5. 如果没有明确的开始日期但有持续天数，默认从今天开始
+	if startDate == "" && duration > 0 {
+		startDate = now.Format("2006-01-02")
+	}
+
+	// 6. 如果有开始日期和持续天数，计算结束日期
+	// "玩N天" 表示从开始日期起N天后结束
+	// 例如：10月1日玩20天 = 10月1日开始，10月21日结束
 	if startDate != "" && duration > 0 {
 		start, err := time.Parse("2006-01-02", startDate)
 		if err == nil {
-			endDate = start.AddDate(0, 0, duration-1).Format("2006-01-02")
+			endDate = start.AddDate(0, 0, duration).Format("2006-01-02")
 		}
 	}
 
@@ -406,11 +413,41 @@ func getTombSweepingDay(year int) string {
 
 // extractDuration 提取持续天数
 func extractDuration(text string) int {
+	// 0. 先用简单映射匹配常见表达（优先级最高）
+	simpleDurationMap := map[string]int{
+		"一天": 1, "两天": 2, "三天": 3, "四天": 4, "五天": 5,
+		"六天": 6, "七天": 7, "八天": 8, "九天": 9, "十天": 10,
+		"半天": 0, // 半天按0处理
+		"一日": 1, "两日": 2, "三日": 3, "四日": 4, "五日": 5,
+		"十一天": 11, "十二天": 12, "十五天": 15, "二十天": 20, "三十天": 30,
+	}
+
+	// 按长度从长到短排序，优先匹配长的
+	keywords := make([]string, 0, len(simpleDurationMap))
+	for k := range simpleDurationMap {
+		keywords = append(keywords, k)
+	}
+	for i := 0; i < len(keywords); i++ {
+		for j := i + 1; j < len(keywords); j++ {
+			if len(keywords[i]) < len(keywords[j]) {
+				keywords[i], keywords[j] = keywords[j], keywords[i]
+			}
+		}
+	}
+
+	for _, keyword := range keywords {
+		if strings.Contains(text, keyword) {
+			return simpleDurationMap[keyword]
+		}
+	}
+
 	// 1. 匹配 "X天", "X日", "X天N夜"
 	patterns := []string{
-		`(\d+)\s*[天日]`,     // 5天、3日
-		`(\d+)\s*天\d*夜`,    // 5天4夜、3天2夜
-		`([一二三四五六七八九十]+)天`, // 三天、五天
+		`(\d+)\s*[天日]`,       // 5天、3日、20天
+		`(\d+)\s*天\d*夜`,      // 5天4夜、3天2夜
+		`([一二三四五六七八九十两百]+)天`, // 三天、五天、二十天、三十五天
+		`([一二三四五六七八九十两百]+)日`, // 三日、二十日
+		`([一二三四五六七八九十两百]+)天[一二三四五六七八九十两百]*夜`, // 五天四夜
 	}
 
 	for _, pattern := range patterns {
@@ -538,8 +575,82 @@ func parseChineseNumberForDuration(s string) int {
 
 // extractBudget 提取预算
 func extractBudget(text string) float64 {
-	// 匹配各种预算表达
-	patterns := []struct {
+	// 1. 先匹配中文数字的预算表达（简化版，直接识别常见表达）
+	// 包含带单位（元、块、钱）和不带单位的版本
+	simpleChinesePatterns := map[string]float64{
+		// 千位级别
+		"一千元": 1000, "一千块": 1000, "一千": 1000,
+		"两千元": 2000, "两千块": 2000, "两千": 2000,
+		"三千元": 3000, "三千块": 3000, "三千": 3000,
+		"四千元": 4000, "四千块": 4000, "四千": 4000,
+		"五千元": 5000, "五千块": 5000, "五千": 5000,
+		"六千元": 6000, "六千块": 6000, "六千": 6000,
+		"七千元": 7000, "七千块": 7000, "七千": 7000,
+		"八千元": 8000, "八千块": 8000, "八千": 8000,
+		"九千元": 9000, "九千块": 9000, "九千": 9000,
+
+		// 万位级别
+		"一万元": 10000, "一万块": 10000, "一万": 10000,
+		"两万元": 20000, "两万块": 20000, "两万": 20000,
+		"三万元": 30000, "三万块": 30000, "三万": 30000,
+		"四万元": 40000, "四万块": 40000, "四万": 40000,
+		"五万元": 50000, "五万块": 50000, "五万": 50000,
+		"六万元": 60000, "六万块": 60000, "六万": 60000,
+		"七万元": 70000, "七万块": 70000, "七万": 70000,
+		"八万元": 80000, "八万块": 80000, "八万": 80000,
+		"九万元": 90000, "九万块": 90000, "九万": 90000,
+		"十万元": 100000, "十万块": 100000, "十万": 100000,
+
+		// 中间数
+		"一万五": 15000, "两万五": 25000, "三万五": 35000,
+	}
+
+	// 按长度从长到短排序，优先匹配长的（带单位的优先）
+	keywords := make([]string, 0, len(simpleChinesePatterns))
+	for k := range simpleChinesePatterns {
+		keywords = append(keywords, k)
+	}
+	for i := 0; i < len(keywords); i++ {
+		for j := i + 1; j < len(keywords); j++ {
+			if len(keywords[i]) < len(keywords[j]) {
+				keywords[i], keywords[j] = keywords[j], keywords[i]
+			}
+		}
+	}
+
+	for _, keyword := range keywords {
+		if strings.Contains(text, keyword) {
+			return simpleChinesePatterns[keyword]
+		}
+	}
+
+	// 2. 使用正则匹配更复杂的中文数字表达
+	chineseBudgetPatterns := []struct {
+		pattern    string
+		multiplier float64
+	}{
+		// 匹配：三千元、五千块、八千
+		{`([一二三四五六七八九十两百]+)千\s*[元块钱]?`, 1000},
+		// 匹配：一万元、两万块、五万
+		{`([一二三四五六七八九十两百]+)万\s*[元块钱]?`, 10000},
+		// 匹配：预算：三千、预算五万
+		{`预算\s*[:：]?\s*([一二三四五六七八九十两百]+)千`, 1000},
+		{`预算\s*[:：]?\s*([一二三四五六七八九十两百]+)万`, 10000},
+	}
+
+	for _, p := range chineseBudgetPatterns {
+		re := regexp.MustCompile(p.pattern)
+		if matches := re.FindStringSubmatch(text); len(matches) > 1 {
+			// 解析中文数字
+			amount := parseChineseBudgetNumber(matches[1])
+			if amount > 0 {
+				return amount * p.multiplier
+			}
+		}
+	}
+
+	// 2. 匹配阿拉伯数字的预算表达
+	arabicBudgetPatterns := []struct {
 		regex      string
 		multiplier float64
 	}{
@@ -547,13 +658,13 @@ func extractBudget(text string) float64 {
 		{`预算\s*[:：]?\s*(\d+\.?\d*)千`, 1000},
 		{`预算\s*[:：]?\s*(\d+\.?\d*)k`, 1000},
 		{`预算\s*[:：]?\s*(\d+\.?\d*)`, 1},
-		{`(\d+\.?\d*)万[元块]?`, 10000},
-		{`(\d+\.?\d*)千[元块]?`, 1000},
+		{`(\d+\.?\d*)万\s*[元块钱]?`, 10000},
+		{`(\d+\.?\d*)千\s*[元块钱]?`, 1000},
 		{`(\d+\.?\d*)k`, 1000},
 		{`(\d+\.?\d*)\s*[元块]`, 1},
 	}
 
-	for _, p := range patterns {
+	for _, p := range arabicBudgetPatterns {
 		re := regexp.MustCompile(p.regex)
 		if matches := re.FindStringSubmatch(text); len(matches) > 1 {
 			amount, err := strconv.ParseFloat(matches[1], 64)
@@ -566,27 +677,107 @@ func extractBudget(text string) float64 {
 	return 0
 }
 
-// extractTravelers 提取旅行人数
-func extractTravelers(text string) int {
-	// 1. 匹配 "X人", "X个人"
-	re := regexp.MustCompile(`(\d+)\s*[个]?人`)
-	if matches := re.FindStringSubmatch(text); len(matches) > 1 {
-		count, _ := strconv.Atoi(matches[1])
-		if count > 0 && count < 100 {
-			return count
+// parseChineseBudgetNumber 解析预算中的中文数字（支持更复杂的表达）
+func parseChineseBudgetNumber(s string) float64 {
+	// 基础数字映射
+	digitMap := map[rune]int{
+		'一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+		'六': 6, '七': 7, '八': 8, '九': 9,
+		'零': 0, '两': 2, '俩': 2,
+	}
+
+	unitMap := map[rune]int{
+		'十': 10,
+		'百': 100,
+		'千': 1000,
+		'万': 10000,
+	}
+
+	result := 0
+	currentNum := 0
+	hasDigit := false
+
+	runes := []rune(s)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+
+		if digit, ok := digitMap[r]; ok {
+			currentNum = digit
+			hasDigit = true
+		} else if unit, ok := unitMap[r]; ok {
+			if !hasDigit {
+				currentNum = 1 // "十"、"百"等前面没有数字时默认为1
+			}
+			result += currentNum * unit
+			currentNum = 0
+			hasDigit = false
 		}
 	}
 
-	// 2. 检测关键词
+	// 处理最后剩余的数字
+	if hasDigit {
+		result += currentNum
+	}
+
+	return float64(result)
+}
+
+// extractTravelers 提取旅行人数
+func extractTravelers(text string) int {
+	// 1. 优先匹配关键词（更准确）
 	keywords := map[string]int{
-		"一个人": 1, "独自": 1, "solo": 1, "自己": 1,
-		"两个人": 2, "俩人": 2, "情侣": 2, "两人": 2,
-		"三个人": 3, "仨人": 3, "三人": 3,
-		"四个人": 4, "全家": 4, "家庭": 4, "四人": 4,
+		"一个人":  1,
+		"独自":   1,
+		"solo": 1,
+		"自己":   1,
+		"单人":   1,
+		"两个人":  2,
+		"俩人":   2,
+		"两人":   2,
+		"情侣":   2,
+		"夫妻":   2,
+		"三个人":  3,
+		"仨人":   3,
+		"三人":   3,
+		"四个人":  4,
+		"全家":   4,
+		"家庭":   4,
+		"四人":   4,
+		"五个人":  5,
+		"五人":   5,
+		"六个人":  6,
+		"六人":   6,
+		"一家三口": 3,
+		"一家四口": 4,
+		"一家五口": 5,
 	}
 
 	for keyword, count := range keywords {
 		if strings.Contains(text, keyword) {
+			return count
+		}
+	}
+
+	// 2. 匹配中文数字 + 人/个人
+	chinesePersonPatterns := []string{
+		`([一二三四五六七八九十两]+)(?:个)?人`,
+	}
+
+	for _, pattern := range chinesePersonPatterns {
+		re := regexp.MustCompile(pattern)
+		if matches := re.FindStringSubmatch(text); len(matches) > 1 {
+			count := parseChineseNumber(matches[1])
+			if count > 0 && count < 100 {
+				return count
+			}
+		}
+	}
+
+	// 3. 匹配阿拉伯数字 + 人/个人
+	re := regexp.MustCompile(`(\d+)\s*[个]?人`)
+	if matches := re.FindStringSubmatch(text); len(matches) > 1 {
+		count, _ := strconv.Atoi(matches[1])
+		if count > 0 && count < 100 {
 			return count
 		}
 	}
