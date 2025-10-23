@@ -1,0 +1,66 @@
+# Git
+
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+
+README.md
+*.md
+
+# Node modules
+
+frontend/node_modules
+frontend/dist
+
+# Go
+
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Logs
+
+logs/
+backend/logs/
+*.log
+
+# IDE
+
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+
+.DS_Store
+Thumbs.db
+
+# Docker
+
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# CI/CD
+
+.github
+
+# Environment files
+
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+
+frontend/.vite
+frontend/dist
+backend/travel_planner_server

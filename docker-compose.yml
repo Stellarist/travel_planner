@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  travel_planner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: travel_planner
+    ports:
+      - "8080:80"     # Nginx (前端 + API 代理)
+    volumes:
+      - ./logs:/app/logs
+      - ./config.json:/app/config.json
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
