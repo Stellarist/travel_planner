@@ -43,6 +43,14 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	parserGroup.POST("/parse", ParseTextHandler)
 	parserGroup.POST("/parse-expense", ParseExpenseQueryHandler)
 
+	diaryGroup := r.Group("/api/diaries")
+	diaryGroup.Use(service.AuthMiddleware())
+	diaryGroup.POST("", CreateDiaryHandler)
+	diaryGroup.GET("", GetDiariesHandler)
+	diaryGroup.GET("/:id", GetDiaryHandler)
+	diaryGroup.PUT("/:id", UpdateDiaryHandler)
+	diaryGroup.DELETE("/:id", DeleteDiaryHandler)
+
 }
 
 func RootHandler(c *gin.Context) {

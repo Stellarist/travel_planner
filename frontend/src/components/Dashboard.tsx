@@ -80,11 +80,11 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                             <p>追踪旅行开支，控制预算</p>
                         </Link>
 
-                        <div className="feature-card">
+                        <Link to="/diary" className="feature-card" style={{ textDecoration: 'none' }}>
                             <div className="card-icon">📝</div>
                             <h3>旅行日记</h3>
                             <p>记录旅途中的美好时刻</p>
-                        </div>
+                        </Link>
                     </div>
                 </div>
             </main>

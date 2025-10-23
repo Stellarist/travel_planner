@@ -6,6 +6,7 @@ import TripPlanner from './components/TripPlanner'
 import BudgetManager from './components/BudgetManager'
 import ExploreMap from './components/ExploreMap'
 import ExpenseAnalysis from './components/ExpenseAnalysis'
+import TravelDiary from './components/TravelDiary'
 import './App.css'
 import type { User } from './shared/types'
 
@@ -61,6 +62,7 @@ function App() {
       <Route path="/budget" element={user ? <BudgetManager /> : <Navigate to="/" replace />} />
       <Route path="/budget/analysis" element={user ? <ExpenseAnalysis /> : <Navigate to="/" replace />} />
       <Route path="/explore" element={user ? <ExploreMap /> : <Navigate to="/" replace />} />
+      <Route path="/diary" element={user ? <TravelDiary /> : <Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
