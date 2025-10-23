@@ -28,12 +28,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create config.json from secret
+      - name: Create config.json from TRAVEL_PLANNER_SECRET
         if: ${{ github.event_name != 'pull_request' }}
         run: |
-          echo "Creating config.json from CONFIG_JSON secret..."
-          printf '%s' "${{ secrets.CONFIG_JSON }}" > config.json
-          echo "config.json written: $(wc -c < config.json) bytes"
+          echo "Creating config.json from TRAVEL_PLANNER_SECRET..."
+          # write secret to config.json
+          printf '%s' "${{ secrets.TRAVEL_PLANNER_SECRET }}" > config.json
+          echo "Validating config.json is valid JSON..."
+          python3 -m json.tool config.json >/dev/null
+          echo "config.json written and validated: $(wc -c < config.json) bytes"
         shell: bash
 
       - name: Set up QEMU
