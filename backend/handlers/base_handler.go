@@ -22,6 +22,9 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	tripsGroup.GET("", GetUserTripsHandler)
 	tripsGroup.GET("/:id", GetTripHandler)
 	tripsGroup.DELETE("/:id", DeleteTripHandler)
+	tripsGroup.GET("/favorites/list", GetFavoriteTripHandler)      // 获取收藏列表
+	tripsGroup.POST("/favorites/:id", AddFavoriteTripHandler)      // 添加收藏
+	tripsGroup.DELETE("/favorites/:id", RemoveFavoriteTripHandler) // 取消收藏
 
 	expenseGroup := r.Group("/api/expenses")
 	expenseGroup.Use(service.AuthMiddleware())

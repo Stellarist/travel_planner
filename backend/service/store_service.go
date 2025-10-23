@@ -138,6 +138,22 @@ type TripPlan struct {
 	UpdatedAt time.Time       `json:"updatedAt"`
 }
 
+// MarshalJSON 自定义 JSON 序列化，将 Request 中的字段提升到顶层
+func (t *TripPlan) MarshalJSON() ([]byte, error) {
+	type Alias TripPlan
+	return json.Marshal(&struct {
+		Destination string `json:"destination"`
+		StartDate   string `json:"startDate"`
+		EndDate     string `json:"endDate"`
+		*Alias
+	}{
+		Destination: t.Request.Destination,
+		StartDate:   t.Request.StartDate,
+		EndDate:     t.Request.EndDate,
+		Alias:       (*Alias)(t),
+	})
+}
+
 func tripKey(tripID string) string        { return "trip:" + tripID }
 func userTripsKey(username string) string { return "user_trips:" + username }
 
@@ -301,4 +317,70 @@ func RemoveFavorite(ctx context.Context, username, favoriteID string) error {
 		}
 	}
 	return SaveUserFavorites(ctx, username, newFavorites)
+}
+
+// ==================== 行程收藏功能 ====================
+
+func userFavoriteTripIDsKey(username string) string { return "user_favorite_trips:" + username }
+
+// GetUserFavoriteTrips 获取用户收藏的行程列表
+func GetUserFavoriteTrips(ctx context.Context, username string) ([]*TripPlan, error) {
+	if rdb == nil {
+		return nil, errors.New("redis not initialized")
+	}
+
+	// 获取收藏的行程 ID 列表
+	tripIDs, err := rdb.SMembers(ctx, userFavoriteTripIDsKey(username)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取每个行程的详细信息
+	trips := make([]*TripPlan, 0, len(tripIDs))
+	for _, id := range tripIDs {
+		trip, err := GetTripPlan(ctx, id)
+		if err != nil {
+			continue // 忽略获取失败的行程
+		}
+		if trip != nil {
+			trips = append(trips, trip)
+		}
+	}
+
+	return trips, nil
+}
+
+// AddFavoriteTrip 添加行程到收藏
+func AddFavoriteTrip(ctx context.Context, username, tripID string) error {
+	if rdb == nil {
+		return errors.New("redis not initialized")
+	}
+
+	// 检查行程是否存在
+	trip, err := GetTripPlan(ctx, tripID)
+	if err != nil {
+		return err
+	}
+	if trip == nil {
+		return errors.New("trip not found")
+	}
+
+	// 添加到收藏集合
+	return rdb.SAdd(ctx, userFavoriteTripIDsKey(username), tripID).Err()
+}
+
+// RemoveFavoriteTrip 从收藏中移除行程
+func RemoveFavoriteTrip(ctx context.Context, username, tripID string) error {
+	if rdb == nil {
+		return errors.New("redis not initialized")
+	}
+	return rdb.SRem(ctx, userFavoriteTripIDsKey(username), tripID).Err()
+}
+
+// IsTripFavorited 检查行程是否已收藏
+func IsTripFavorited(ctx context.Context, username, tripID string) (bool, error) {
+	if rdb == nil {
+		return false, errors.New("redis not initialized")
+	}
+	return rdb.SIsMember(ctx, userFavoriteTripIDsKey(username), tripID).Result()
 }

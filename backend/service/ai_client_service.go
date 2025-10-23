@@ -21,6 +21,11 @@ func CallModel(ctx context.Context, prompt string) (string, error) {
 		return "", errors.New("model not configured")
 	}
 
+	fmt.Printf("=== 调用大模型 ===\n")
+	fmt.Printf("模型: %s\n", cfg.Model)
+	fmt.Printf("API: %s\n", cfg.BaseURL)
+	fmt.Printf("Prompt 长度: %d 字符\n", len(prompt))
+
 	payload := map[string]interface{}{
 		"model": cfg.Model,
 		"messages": []map[string]interface{}{
@@ -34,7 +39,10 @@ func CallModel(ctx context.Context, prompt string) (string, error) {
 	}
 
 	reqURL := strings.TrimRight(cfg.BaseURL, "/") + "/chat/completions"
-	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	fmt.Printf("请求 URL: %s\n", reqURL)
+
+	// 增加超时时间到 90 秒，因为生成行程需要较长时间
+	reqCtx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
 
 	httpReq, err := http.NewRequestWithContext(reqCtx, "POST", reqURL, bytes.NewReader(b))
@@ -44,12 +52,20 @@ func CallModel(ctx context.Context, prompt string) (string, error) {
 	httpReq.Header.Set("Authorization", "Bearer "+cfg.ApiKey)
 	httpReq.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 35 * time.Second}
+	// HTTP Client 超时设置略大于 context 超时
+	client := &http.Client{Timeout: 95 * time.Second}
+
+	fmt.Printf("开始请求... (超时: 90秒)\n")
+	startTime := time.Now()
+
 	resp, err := client.Do(httpReq)
 	if err != nil {
+		fmt.Printf("请求失败 (耗时: %.2f秒): %v\n", time.Since(startTime).Seconds(), err)
 		return "", fmt.Errorf("request failed: %w", err)
 	}
 	defer resp.Body.Close()
+
+	fmt.Printf("收到响应 (耗时: %.2f秒), 状态码: %d\n", time.Since(startTime).Seconds(), resp.StatusCode)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

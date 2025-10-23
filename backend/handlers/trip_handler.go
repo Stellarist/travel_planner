@@ -46,7 +46,8 @@ func PlanTripHandler(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	// 增加超时时间到 2 分钟，因为 AI 生成行程需要较长时间
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 120*time.Second)
 	defer cancel()
 
 	user, err := service.GetUser(ctx, username)
@@ -148,4 +149,74 @@ func DeleteTripHandler(c *gin.Context) {
 	}
 
 	api.RespondSuccess(c, gin.H{"message": "删除成功"})
+}
+
+// GetFavoriteTripHandler 获取收藏的行程列表
+func GetFavoriteTripHandler(c *gin.Context) {
+	username, ok := api.GetUsername(c)
+	if !ok {
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+	defer cancel()
+
+	trips, err := service.GetUserFavoriteTrips(ctx, username)
+	if err != nil {
+		api.RespondError(c, http.StatusInternalServerError, "获取收藏失败")
+		return
+	}
+
+	api.RespondSuccess(c, trips)
+}
+
+// AddFavoriteTripHandler 添加行程到收藏
+func AddFavoriteTripHandler(c *gin.Context) {
+	username, ok := api.GetUsername(c)
+	if !ok {
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	tripID := c.Param("id")
+	if tripID == "" {
+		api.RespondError(c, http.StatusBadRequest, "缺少行程ID")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+	defer cancel()
+
+	if err := service.AddFavoriteTrip(ctx, username, tripID); err != nil {
+		api.RespondError(c, http.StatusInternalServerError, "收藏失败: "+err.Error())
+		return
+	}
+
+	api.RespondSuccess(c, gin.H{"message": "收藏成功"})
+}
+
+// RemoveFavoriteTripHandler 取消收藏行程
+func RemoveFavoriteTripHandler(c *gin.Context) {
+	username, ok := api.GetUsername(c)
+	if !ok {
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	tripID := c.Param("id")
+	if tripID == "" {
+		api.RespondError(c, http.StatusBadRequest, "缺少行程ID")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 3*time.Second)
+	defer cancel()
+
+	if err := service.RemoveFavoriteTrip(ctx, username, tripID); err != nil {
+		api.RespondError(c, http.StatusInternalServerError, "取消收藏失败")
+		return
+	}
+
+	api.RespondSuccess(c, gin.H{"message": "已取消收藏"})
 }

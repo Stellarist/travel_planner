@@ -55,6 +55,7 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Login onLoginSuccess={handleLoginSuccess} />} />
+      <Route path="/trips/plan" element={user ? <TripPlanner /> : <Navigate to="/" replace />} />
       <Route path="/planner" element={user ? <TripPlanner /> : <Navigate to="/" replace />} />
       <Route path="/budget" element={user ? <BudgetManager /> : <Navigate to="/" replace />} />
       <Route path="/explore" element={user ? <ExploreMap /> : <Navigate to="/" replace />} />

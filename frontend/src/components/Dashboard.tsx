@@ -62,7 +62,7 @@ function Dashboard({ user, onLogout }: DashboardProps) {
             <main className="dashboard-main">
                 <div className="content-wrapper">
                     <div className="feature-cards">
-                        <Link to="/planner" className="feature-card" style={{ textDecoration: 'none' }}>
+                        <Link to="/trips/plan" className="feature-card" style={{ textDecoration: 'none' }}>
                             <div className="card-icon">🗺️</div>
                             <h3>规划行程</h3>
                             <p>创建详细的旅行计划，安排每日行程</p>
