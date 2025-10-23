@@ -6,6 +6,14 @@
 
 AI Travel Planner 是一个 Web 版的智能旅行规划助手，旨在简化旅行规划过程。通过集成大语言模型和语音识别技术，系统能够理解用户的自然语言需求，自动生成详细的个性化旅行路线，并提供全方位的旅行辅助功能，包括费用管理、行程收藏、旅行日记等。
 
+### 本地运行
+
+```
+docker pull ghcr.io/stellarist/travel_planner:latest
+docker run -d -p8080:80 --name travel_planner ghcr.io/stellarist/travel_planner:latest
+访问地址: localhost:8080
+```
+
 ---
 
 ## ✨ 功能特性
