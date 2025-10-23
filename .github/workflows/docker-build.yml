@@ -32,9 +32,14 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         run: |
           echo "Creating config.json from TRAVEL_PLANNER_SECRET..."
-          echo "${{ secrets.TRAVEL_PLANNER_SECRET }}" | base64 -d > config.json
+
+          cat << 'EOF_JSON' > config.json
+          ${{ secrets.TRAVEL_PLANNER_SECRET }}
+          EOF_JSON
+
           echo "Validating config.json is valid JSON..."
           python3 -m json.tool config.json >/dev/null
+
           echo "config.json written and validated: $(wc -c < config.json) bytes"
         shell: bash
 
