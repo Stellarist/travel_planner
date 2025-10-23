@@ -40,19 +40,22 @@ else
     REDIS_AVAILABLE=true
 fi
 
-# 检查 Go 是否已安装
-if ! command -v go &> /dev/null; then
-    echo -e "${RED}[✗] Go 未安装或未在 PATH 中${NC}"
-    exit 1
-fi
-echo -e "${GREEN}[✓] 检测到 Go${NC}"
+# Docker 环境下跳过 Go 和 Node 检查
+if [ "$IN_DOCKER" = false ]; then
+    # 检查 Go 是否已安装
+    if ! command -v go &> /dev/null; then
+        echo -e "${RED}[✗] Go 未安装或未在 PATH 中${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}[✓] 检测到 Go${NC}"
 
-# 检查 Node.js 是否已安装
-if ! command -v node &> /dev/null; then
-    echo -e "${RED}[✗] Node.js 未安装或未在 PATH 中${NC}"
-    exit 1
+    # 检查 Node.js 是否已安装
+    if ! command -v node &> /dev/null; then
+        echo -e "${RED}[✗] Node.js 未安装或未在 PATH 中${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}[✓] 检测到 Node.js${NC}"
 fi
-echo -e "${GREEN}[✓] 检测到 Node.js${NC}"
 
 echo ""
 echo -e "${CYAN}正在启动所有服务...${NC}"
