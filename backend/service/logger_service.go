@@ -18,7 +18,7 @@ var (
 // InitLogger 初始化日志系统
 func InitLogger() error {
 	// 创建 logs 目录
-	logDir := "logs"
+	logDir := "../logs"
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		return err
 	}
