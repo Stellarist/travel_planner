@@ -18,10 +18,12 @@ func GetFavorites(c *gin.Context) {
 
 	favorites, err := service.GetUserFavorites(c.Request.Context(), username)
 	if err != nil {
+		service.LogError("Failed to get favorites for user %s: %v", username, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	service.LogInfo("User %s retrieved %d favorites", username, len(favorites))
 	c.JSON(http.StatusOK, favorites)
 }
 
@@ -41,13 +43,16 @@ func AddFavorite(c *gin.Context) {
 
 	if err := service.AddFavorite(c.Request.Context(), username, favorite); err != nil {
 		if err.Error() == "favorite already exists" {
+			service.LogWarn("User %s attempted to add duplicate favorite: %s", username, favorite.Name)
 			c.JSON(http.StatusConflict, gin.H{"error": "已收藏"})
 			return
 		}
+		service.LogError("Failed to add favorite for user %s: %v", username, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	service.LogInfo("User %s added favorite: %s", username, favorite.Name)
 	c.JSON(http.StatusOK, gin.H{"message": "收藏成功"})
 }
 
@@ -66,10 +71,12 @@ func RemoveFavorite(c *gin.Context) {
 	}
 
 	if err := service.RemoveFavorite(c.Request.Context(), username, favoriteID); err != nil {
+		service.LogError("Failed to remove favorite %s for user %s: %v", favoriteID, username, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	service.LogInfo("User %s removed favorite: %s", username, favoriteID)
 	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
 }
 

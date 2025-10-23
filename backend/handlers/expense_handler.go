@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -50,10 +49,12 @@ func CreateExpenseHandler(c *gin.Context) {
 	rec.CreatedAt = time.Now().Format(time.RFC3339)
 
 	if err := service.SaveExpense(ctx, username, &rec); err != nil {
+		service.LogError("Failed to save expense for user %s: %v", username, err)
 		api.RespondError(c, http.StatusInternalServerError, "保存失败")
 		return
 	}
 
+	service.LogInfo("User %s created expense %s (category: %s, amount: %.2f %s)", username, rec.ID, rec.Category, rec.Amount, rec.Currency)
 	api.RespondSuccess(c, rec)
 }
 
@@ -75,6 +76,7 @@ func ListExpensesHandler(c *gin.Context) {
 
 	list, err := service.GetExpenses(ctx, username)
 	if err != nil {
+		service.LogError("Failed to get expenses for user %s: %v", username, err)
 		api.RespondError(c, http.StatusInternalServerError, "获取失败")
 		return
 	}
@@ -118,6 +120,7 @@ func ListExpensesHandler(c *gin.Context) {
 		filtered = append(filtered, e)
 	}
 
+	service.LogInfo("User %s retrieved %d expenses (filtered from %d total)", username, len(filtered), len(list))
 	api.RespondSuccess(c, filtered)
 }
 
@@ -141,7 +144,6 @@ func AnalyzeExpensesHandler(c *gin.Context) {
 		Query    string `json:"q"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		fmt.Printf("解析请求 body 失败: %v\n", err)
 		// 如果 body 为空或解析失败，使用默认值
 		req = struct {
 			Category string `json:"category"`
@@ -151,8 +153,6 @@ func AnalyzeExpensesHandler(c *gin.Context) {
 		}{}
 	}
 
-	fmt.Printf("收到分析请求: category=%s, from=%s, to=%s, query=%s\n", req.Category, req.From, req.To, req.Query)
-
 	category := req.Category
 	from := req.From
 	to := req.To
@@ -160,15 +160,13 @@ func AnalyzeExpensesHandler(c *gin.Context) {
 
 	list, err := service.GetExpenses(ctx, username)
 	if err != nil {
-		fmt.Printf("获取消费记录失败: %v\n", err)
+		service.LogError("Failed to get expenses for analysis for user %s: %v", username, err)
 		api.RespondError(c, http.StatusInternalServerError, "获取失败")
 		return
 	}
-	fmt.Printf("成功获取 %d 条消费记录\n", len(list))
 
 	// apply same filtering logic as ListExpensesHandler
 	filtered := make([]*service.ExpenseRecord, 0, len(list))
-	fmt.Printf("开始过滤记录...\n")
 	var fromT, toT time.Time
 	var errf error
 	if from != "" {
@@ -203,14 +201,14 @@ func AnalyzeExpensesHandler(c *gin.Context) {
 		}
 		filtered = append(filtered, e)
 	}
-	fmt.Printf("过滤后剩余 %d 条记录\n", len(filtered))
 
-	fmt.Printf("准备调用 AI 分析...\n")
 	analysis, err := service.AnalyzeExpenses(ctx, username, filtered, userQuery)
 	if err != nil {
+		service.LogError("Failed to analyze expenses for user %s: %v", username, err)
 		api.RespondError(c, http.StatusInternalServerError, "分析失败: "+err.Error())
 		return
 	}
 
+	service.LogInfo("User %s analyzed %d expenses", username, len(filtered))
 	api.RespondSuccess(c, gin.H{"analysis": analysis})
 }

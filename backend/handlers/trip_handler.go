@@ -68,6 +68,7 @@ func PlanTripHandler(c *gin.Context) {
 
 	plan, err := service.GenerateTripPlan(ctx, tripReq)
 	if err != nil {
+		service.LogError("Failed to generate trip plan for user %s: %v", username, err)
 		api.RespondError(c, http.StatusInternalServerError, "生成行程失败: "+err.Error())
 		return
 	}
@@ -76,10 +77,12 @@ func PlanTripHandler(c *gin.Context) {
 	plan.Username = username
 
 	if err := service.SaveTripPlan(ctx, plan); err != nil {
+		service.LogError("Failed to save trip plan for user %s: %v", username, err)
 		api.RespondError(c, http.StatusInternalServerError, "保存行程失败")
 		return
 	}
 
+	service.LogInfo("User %s created trip plan to %s (ID: %s)", username, req.Destination, plan.ID)
 	c.JSON(http.StatusOK, TripResponse{
 		Success: true,
 		Message: "行程规划成功",
@@ -100,10 +103,12 @@ func GetUserTripsHandler(c *gin.Context) {
 
 	trips, err := service.GetUserTrips(ctx, username)
 	if err != nil {
+		service.LogError("Failed to get trips for user %s: %v", username, err)
 		api.RespondError(c, http.StatusInternalServerError, "获取行程失败")
 		return
 	}
 
+	service.LogInfo("User %s retrieved %d trips", username, len(trips))
 	api.RespondSuccess(c, trips)
 }
 
@@ -120,14 +125,17 @@ func GetTripHandler(c *gin.Context) {
 
 	trip, err := service.GetTripPlan(ctx, tripID)
 	if err != nil {
+		service.LogError("Failed to get trip %s: %v", tripID, err)
 		api.RespondError(c, http.StatusInternalServerError, "获取行程失败")
 		return
 	}
 	if trip == nil {
+		service.LogWarn("Trip %s not found", tripID)
 		api.RespondError(c, http.StatusNotFound, "行程不存在")
 		return
 	}
 
+	service.LogInfo("Retrieved trip %s", tripID)
 	api.RespondSuccess(c, trip)
 }
 
@@ -144,10 +152,12 @@ func DeleteTripHandler(c *gin.Context) {
 	defer cancel()
 
 	if err := service.DeleteTripPlan(ctx, tripID, username); err != nil {
+		service.LogError("Failed to delete trip %s for user %s: %v", tripID, username, err)
 		api.RespondError(c, http.StatusInternalServerError, "删除失败")
 		return
 	}
 
+	service.LogInfo("User %s deleted trip %s", username, tripID)
 	api.RespondSuccess(c, gin.H{"message": "删除成功"})
 }
 
@@ -164,10 +174,12 @@ func GetFavoriteTripHandler(c *gin.Context) {
 
 	trips, err := service.GetUserFavoriteTrips(ctx, username)
 	if err != nil {
+		service.LogError("Failed to get favorite trips for user %s: %v", username, err)
 		api.RespondError(c, http.StatusInternalServerError, "获取收藏失败")
 		return
 	}
 
+	service.LogInfo("User %s retrieved %d favorite trips", username, len(trips))
 	api.RespondSuccess(c, trips)
 }
 
@@ -189,10 +201,12 @@ func AddFavoriteTripHandler(c *gin.Context) {
 	defer cancel()
 
 	if err := service.AddFavoriteTrip(ctx, username, tripID); err != nil {
+		service.LogError("Failed to add favorite trip %s for user %s: %v", tripID, username, err)
 		api.RespondError(c, http.StatusInternalServerError, "收藏失败: "+err.Error())
 		return
 	}
 
+	service.LogInfo("User %s added trip %s to favorites", username, tripID)
 	api.RespondSuccess(c, gin.H{"message": "收藏成功"})
 }
 
@@ -214,9 +228,11 @@ func RemoveFavoriteTripHandler(c *gin.Context) {
 	defer cancel()
 
 	if err := service.RemoveFavoriteTrip(ctx, username, tripID); err != nil {
+		service.LogError("Failed to remove favorite trip %s for user %s: %v", tripID, username, err)
 		api.RespondError(c, http.StatusInternalServerError, "取消收藏失败")
 		return
 	}
 
-	api.RespondSuccess(c, gin.H{"message": "已取消收藏"})
+	service.LogInfo("User %s removed trip %s from favorites", username, tripID)
+	api.RespondSuccess(c, gin.H{"message": "取消收藏成功"})
 }

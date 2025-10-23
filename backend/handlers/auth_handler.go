@@ -34,6 +34,7 @@ type User struct {
 func LoginHandler(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		service.LogWarn("Login request with invalid parameters: %v", err)
 		api.RespondError(c, http.StatusBadRequest, "请求参数错误")
 		return
 	}
@@ -43,20 +44,24 @@ func LoginHandler(c *gin.Context) {
 
 	u, err := service.GetUser(ctx, req.Username)
 	if err != nil {
+		service.LogError("Failed to get user %s: %v", req.Username, err)
 		api.RespondError(c, http.StatusInternalServerError, "服务器错误")
 		return
 	}
 	if u == nil || !service.VerifyPassword(req.Password, u.PasswordHash) {
+		service.LogWarn("Failed login attempt for user: %s", req.Username)
 		api.RespondError(c, http.StatusUnauthorized, "用户名或密码错误")
 		return
 	}
 
 	token, err := service.GenerateToken(u.ID, u.Username, 24*time.Hour)
 	if err != nil {
+		service.LogError("Failed to generate token for user %s: %v", req.Username, err)
 		api.RespondError(c, http.StatusInternalServerError, "生成 token 失败")
 		return
 	}
 
+	service.LogInfo("User %s (ID: %d) logged in successfully", req.Username, u.ID)
 	c.JSON(http.StatusOK, LoginResponse{
 		Success: true,
 		Message: "登录成功",
@@ -72,6 +77,7 @@ func LoginHandler(c *gin.Context) {
 func RegisterHandler(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		service.LogWarn("Register request with invalid parameters: %v", err)
 		api.RespondError(c, http.StatusBadRequest, "请求参数错误")
 		return
 	}
@@ -81,10 +87,12 @@ func RegisterHandler(c *gin.Context) {
 
 	existing, err := service.GetUser(ctx, req.Username)
 	if err != nil {
+		service.LogError("Failed to check existing user %s: %v", req.Username, err)
 		api.RespondError(c, http.StatusInternalServerError, "服务器错误")
 		return
 	}
 	if existing != nil {
+		service.LogWarn("Registration failed - username already exists: %s", req.Username)
 		c.JSON(http.StatusConflict, LoginResponse{
 			Success: false,
 			Message: "用户名已存在",
@@ -92,12 +100,14 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	_, err = service.CreateUser(ctx, req.Username, req.Password)
+	userID, err := service.CreateUser(ctx, req.Username, req.Password)
 	if err != nil {
+		service.LogError("Failed to create user %s: %v", req.Username, err)
 		api.RespondError(c, http.StatusInternalServerError, "注册失败")
 		return
 	}
 
+	service.LogInfo("New user registered: %s (ID: %d)", req.Username, userID)
 	c.JSON(http.StatusCreated, LoginResponse{
 		Success: true,
 		Message: "注册成功",

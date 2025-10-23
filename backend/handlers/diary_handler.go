@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"example.com/travel_planner/backend/api"
 	"example.com/travel_planner/backend/service"
 	"github.com/gin-gonic/gin"
 )
@@ -27,32 +28,41 @@ type UpdateDiaryRequest struct {
 
 // CreateDiaryHandler 创建日记
 func CreateDiaryHandler(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	username, ok := api.GetUsername(c)
+	if !ok {
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	// 获取 user_id 并进行类型转换
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		service.LogWarn("User %s missing user_id in context", username)
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	var userID int64
+	switch v := userIDInterface.(type) {
+	case int64:
+		userID = v
+	case int:
+		userID = int64(v)
+	default:
+		service.LogError("Invalid user_id type for user %s: %T", username, userIDInterface)
+		api.RespondError(c, http.StatusInternalServerError, "用户信息错误")
 		return
 	}
 
 	var req CreateDiaryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		service.LogWarn("Invalid diary creation request from user %s: %v", username, err)
+		api.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	// 将 int 转换为 int64
-	var uid int64
-	switch v := userID.(type) {
-	case int:
-		uid = int64(v)
-	case int64:
-		uid = v
-	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
-		return
-	}
-
-	diary := &service.DiaryEntry{
-		UserID:   uid,
+	diary := service.DiaryEntry{
+		UserID:   userID,
 		Date:     req.Date,
 		Title:    req.Title,
 		Content:  req.Content,
@@ -61,13 +71,15 @@ func CreateDiaryHandler(c *gin.Context) {
 		Mood:     req.Mood,
 	}
 
-	id, err := service.CreateDiary(diary)
+	id, err := service.CreateDiary(&diary)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create diary"})
+		service.LogError("Failed to create diary for user %s: %v", username, err)
+		api.RespondError(c, http.StatusInternalServerError, "创建日记失败")
 		return
 	}
 
 	diary.ID = id
+	service.LogInfo("User %s created diary %d (mood: %s, location: %s)", username, id, req.Mood, req.Location)
 	c.JSON(http.StatusCreated, gin.H{
 		"success": true,
 		"data":    diary,
@@ -76,30 +88,40 @@ func CreateDiaryHandler(c *gin.Context) {
 
 // GetDiariesHandler 获取用户的所有日记
 func GetDiariesHandler(c *gin.Context) {
-	userID, exists := c.Get("user_id")
+	username, ok := api.GetUsername(c)
+	if !ok {
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	// 获取 user_id 并进行类型转换
+	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		service.LogWarn("User %s missing user_id in context", username)
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
 		return
 	}
 
-	// 将 int 转换为 int64
-	var uid int64
-	switch v := userID.(type) {
-	case int:
-		uid = int64(v)
+	var userID int64
+	switch v := userIDInterface.(type) {
 	case int64:
-		uid = v
+		userID = v
+	case int:
+		userID = int64(v)
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
+		service.LogError("Invalid user_id type for user %s: %T", username, userIDInterface)
+		api.RespondError(c, http.StatusInternalServerError, "用户信息错误")
 		return
 	}
 
-	diaries, err := service.GetUserDiaries(uid)
+	diaries, err := service.GetUserDiaries(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get diaries"})
+		service.LogError("Failed to get diaries for user %s: %v", username, err)
+		api.RespondError(c, http.StatusInternalServerError, "获取日记失败")
 		return
 	}
 
+	service.LogInfo("User %s retrieved %d diaries", username, len(diaries))
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    diaries,
@@ -108,31 +130,41 @@ func GetDiariesHandler(c *gin.Context) {
 
 // GetDiaryHandler 获取单条日记
 func GetDiaryHandler(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	username, ok := api.GetUsername(c)
+	if !ok {
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
 		return
 	}
 
-	// 将 int 转换为 int64
-	var uid int64
-	switch v := userID.(type) {
-	case int:
-		uid = int64(v)
+	// 获取 user_id 并进行类型转换
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		service.LogWarn("User %s missing user_id in context", username)
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	var userID int64
+	switch v := userIDInterface.(type) {
 	case int64:
-		uid = v
+		userID = v
+	case int:
+		userID = int64(v)
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
+		service.LogError("Invalid user_id type for user %s: %T", username, userIDInterface)
+		api.RespondError(c, http.StatusInternalServerError, "用户信息错误")
 		return
 	}
 
 	id := c.Param("id")
-	diary, err := service.GetDiary(id, uid)
+	diary, err := service.GetDiary(id, userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Diary not found"})
+		service.LogWarn("Diary %s not found for user %s", id, username)
+		api.RespondError(c, http.StatusNotFound, "日记不存在")
 		return
 	}
 
+	service.LogInfo("User %s retrieved diary %s", username, id)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"data":    diary,
@@ -141,32 +173,41 @@ func GetDiaryHandler(c *gin.Context) {
 
 // UpdateDiaryHandler 更新日记
 func UpdateDiaryHandler(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	username, ok := api.GetUsername(c)
+	if !ok {
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
 		return
 	}
 
-	// 将 int 转换为 int64
-	var uid int64
-	switch v := userID.(type) {
-	case int:
-		uid = int64(v)
+	// 获取 user_id 并进行类型转换
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		service.LogWarn("User %s missing user_id in context", username)
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	var userID int64
+	switch v := userIDInterface.(type) {
 	case int64:
-		uid = v
+		userID = v
+	case int:
+		userID = int64(v)
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
+		service.LogError("Invalid user_id type for user %s: %T", username, userIDInterface)
+		api.RespondError(c, http.StatusInternalServerError, "用户信息错误")
 		return
 	}
 
 	id := c.Param("id")
 	var req UpdateDiaryRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		service.LogWarn("Invalid diary update request from user %s: %v", username, err)
+		api.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	diary := &service.DiaryEntry{
+	diary := service.DiaryEntry{
 		Date:     req.Date,
 		Title:    req.Title,
 		Content:  req.Content,
@@ -175,12 +216,14 @@ func UpdateDiaryHandler(c *gin.Context) {
 		Mood:     req.Mood,
 	}
 
-	err := service.UpdateDiary(id, uid, diary)
+	err := service.UpdateDiary(id, userID, &diary)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update diary"})
+		service.LogError("Failed to update diary %s for user %s: %v", id, username, err)
+		api.RespondError(c, http.StatusInternalServerError, "更新日记失败")
 		return
 	}
 
+	service.LogInfo("User %s updated diary %s", username, id)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Diary updated successfully",
@@ -189,31 +232,41 @@ func UpdateDiaryHandler(c *gin.Context) {
 
 // DeleteDiaryHandler 删除日记
 func DeleteDiaryHandler(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	username, ok := api.GetUsername(c)
+	if !ok {
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
 		return
 	}
 
-	// 将 int 转换为 int64
-	var uid int64
-	switch v := userID.(type) {
-	case int:
-		uid = int64(v)
+	// 获取 user_id 并进行类型转换
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		service.LogWarn("User %s missing user_id in context", username)
+		api.RespondError(c, http.StatusUnauthorized, "未登录")
+		return
+	}
+
+	var userID int64
+	switch v := userIDInterface.(type) {
 	case int64:
-		uid = v
+		userID = v
+	case int:
+		userID = int64(v)
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID type"})
+		service.LogError("Invalid user_id type for user %s: %T", username, userIDInterface)
+		api.RespondError(c, http.StatusInternalServerError, "用户信息错误")
 		return
 	}
 
 	id := c.Param("id")
-	err := service.DeleteDiary(id, uid)
+	err := service.DeleteDiary(id, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete diary"})
+		service.LogError("Failed to delete diary %s for user %s: %v", id, username, err)
+		api.RespondError(c, http.StatusInternalServerError, "删除日记失败")
 		return
 	}
 
+	service.LogInfo("User %s deleted diary %s", username, id)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "Diary deleted successfully",

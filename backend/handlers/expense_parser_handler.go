@@ -24,11 +24,13 @@ type ParseExpenseResponse struct {
 func ParseExpenseQueryHandler(c *gin.Context) {
 	var req ParseExpenseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		service.LogWarn("Parse expense query failed: invalid request")
 		api.RespondError(c, http.StatusBadRequest, "请求参数错误: 需要提供text字段")
 		return
 	}
 
 	if req.Text == "" {
+		service.LogWarn("Parse expense query failed: empty text")
 		api.RespondError(c, http.StatusBadRequest, "文本内容不能为空")
 		return
 	}
@@ -36,6 +38,8 @@ func ParseExpenseQueryHandler(c *gin.Context) {
 	// 解析文本
 	parsedInfo := service.ParseExpenseQuery(req.Text)
 
+	service.LogInfo("Parsed expense query: category=%s, dates=%s to %s",
+		parsedInfo.Category, parsedInfo.StartDate, parsedInfo.EndDate)
 	c.JSON(http.StatusOK, ParseExpenseResponse{
 		Success: true,
 		Message: "解析成功",

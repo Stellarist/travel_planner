@@ -24,11 +24,13 @@ type ParseTextResponse struct {
 func ParseTextHandler(c *gin.Context) {
 	var req ParseTextRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		service.LogWarn("Parse trip text failed: invalid request")
 		api.RespondError(c, http.StatusBadRequest, "请求参数错误: 需要提供text字段")
 		return
 	}
 
 	if req.Text == "" {
+		service.LogWarn("Parse trip text failed: empty text")
 		api.RespondError(c, http.StatusBadRequest, "文本内容不能为空")
 		return
 	}
@@ -36,6 +38,8 @@ func ParseTextHandler(c *gin.Context) {
 	// 解析文本
 	parsedInfo := service.ParseTripText(req.Text)
 
+	service.LogInfo("Parsed trip text: destination=%s, dates=%s to %s",
+		parsedInfo.Destination, parsedInfo.StartDate, parsedInfo.EndDate)
 	c.JSON(http.StatusOK, ParseTextResponse{
 		Success: true,
 		Message: "解析成功",
