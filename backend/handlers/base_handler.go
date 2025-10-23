@@ -23,17 +23,23 @@ func RegisterRoutes(r *gin.RouterGroup) {
 	tripsGroup.GET("/:id", GetTripHandler)
 	tripsGroup.DELETE("/:id", DeleteTripHandler)
 
-	// expense routes
 	expenseGroup := r.Group("/api/expenses")
 	expenseGroup.Use(service.AuthMiddleware())
 	expenseGroup.POST("", CreateExpenseHandler)
 	expenseGroup.GET("", ListExpensesHandler)
 	expenseGroup.GET("/analyze", AnalyzeExpensesHandler)
 
+	exploreGroup := r.Group("/api/favorites")
+	exploreGroup.Use(service.AuthMiddleware())
+	exploreGroup.GET("", GetFavorites)
+	exploreGroup.POST("", AddFavorite)
+	exploreGroup.DELETE("/:id", RemoveFavorite)
+
 	parserGroup := r.Group("/api/parser")
 	parserGroup.Use(service.AuthMiddleware())
 	parserGroup.POST("/parse", ParseTextHandler)
-	parserGroup.POST("/parse-expense", ParseExpenseQueryHandler) // 新增：解析开销查询
+	parserGroup.POST("/parse-expense", ParseExpenseQueryHandler)
+
 }
 
 func RootHandler(c *gin.Context) {

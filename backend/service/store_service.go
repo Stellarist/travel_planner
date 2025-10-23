@@ -229,3 +229,76 @@ func GenerateTripID(ctx context.Context) (string, error) {
 	}
 	return fmt.Sprintf("trip_%d_%d", id, time.Now().Unix()), nil
 }
+
+// Favorite 收藏的景点
+type Favorite struct {
+	ID      string  `json:"id"`
+	Name    string  `json:"name"`
+	Lng     float64 `json:"lng"`
+	Lat     float64 `json:"lat"`
+	Address string  `json:"address"`
+}
+
+func userFavoritesKey(username string) string { return "user_favorites:" + username }
+
+// GetUserFavorites 获取用户的收藏夹
+func GetUserFavorites(ctx context.Context, username string) ([]Favorite, error) {
+	if rdb == nil {
+		return nil, errors.New("redis not initialized")
+	}
+	data, err := rdb.Get(ctx, userFavoritesKey(username)).Result()
+	if err == redis.Nil {
+		return []Favorite{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var favorites []Favorite
+	if err := json.Unmarshal([]byte(data), &favorites); err != nil {
+		return nil, err
+	}
+	return favorites, nil
+}
+
+// SaveUserFavorites 保存用户的收藏夹
+func SaveUserFavorites(ctx context.Context, username string, favorites []Favorite) error {
+	if rdb == nil {
+		return errors.New("redis not initialized")
+	}
+	data, err := json.Marshal(favorites)
+	if err != nil {
+		return err
+	}
+	return rdb.Set(ctx, userFavoritesKey(username), data, 0).Err()
+}
+
+// AddFavorite 添加收藏
+func AddFavorite(ctx context.Context, username string, favorite Favorite) error {
+	favorites, err := GetUserFavorites(ctx, username)
+	if err != nil {
+		return err
+	}
+	// 检查是否已存在
+	for _, f := range favorites {
+		if f.ID == favorite.ID {
+			return errors.New("favorite already exists")
+		}
+	}
+	favorites = append(favorites, favorite)
+	return SaveUserFavorites(ctx, username, favorites)
+}
+
+// RemoveFavorite 删除收藏
+func RemoveFavorite(ctx context.Context, username, favoriteID string) error {
+	favorites, err := GetUserFavorites(ctx, username)
+	if err != nil {
+		return err
+	}
+	newFavorites := make([]Favorite, 0, len(favorites))
+	for _, f := range favorites {
+		if f.ID != favoriteID {
+			newFavorites = append(newFavorites, f)
+		}
+	}
+	return SaveUserFavorites(ctx, username, newFavorites)
+}

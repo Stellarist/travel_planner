@@ -8,6 +8,7 @@ import { ATTRACTION_TYPES } from '../shared/constants'
 
 const AMAP_KEY = (configJson as any).frontend?.amapKey || 'YOUR_AMAP_KEY_HERE'
 const AMAP_SECURITY_CODE = (configJson as any).frontend?.amapSecurityJsCode || ''
+const API_BASE_URL = (configJson as any).frontend?.backendBaseUrl || 'http://127.0.0.1:3000'
 
 export default function ExploreMap() {
     const navigate = useNavigate()
@@ -30,7 +31,35 @@ export default function ExploreMap() {
     const [suggestions, setSuggestions] = useState<Array<{ name: string; address: string; location?: { lng: number; lat: number } }>>([])
     const [showSuggestions, setShowSuggestions] = useState(false)
     const [activeSuggestIndex, setActiveSuggestIndex] = useState(0)
+    const [favorites, setFavorites] = useState<Array<{ id: string; name: string; lng: number; lat: number; address: string }>>([])
+    const [showFavorites, setShowFavorites] = useState(false)
 
+    // 从后端加载收藏夹
+    useEffect(() => {
+        loadFavorites()
+    }, [])
+
+    const loadFavorites = async () => {
+        try {
+            const token = localStorage.getItem('token')
+            if (!token) return
+
+            const response = await fetch(`${API_BASE_URL}/api/favorites`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            if (response.ok) {
+                const data = await response.json()
+                setFavorites(data || [])
+            }
+        } catch (e) {
+            console.error('Failed to load favorites:', e)
+        }
+    }
+
+    // 初始化地图
     useEffect(() => {
         if (AMAP_KEY === 'YOUR_AMAP_KEY_HERE') {
             console.error('请先在 config.json 中配置高德地图 API Key')
@@ -137,12 +166,16 @@ export default function ExploreMap() {
             map.setZoomAndCenter(12, [lng, lat])
 
             const navUrl = getNavUrl(lng, lat, item.name)
+            const detailUrl = getDetailUrl(lng, lat, item.name)
             const info = new AMap.InfoWindow({
                 content: `
                   <div style="padding:10px; min-width:220px;">
                     <h3 style="margin:0 0 6px 0; font-size:16px; color:#000;">${item.name}</h3>
                     <p style="margin:0 0 8px 0; color:#333;">${item.address || ''}</p>
-                    <a href="${navUrl}" target="_blank" style="display:inline-block; padding:6px 10px; background:#667eea; color:#fff; border-radius:4px; text-decoration:none;">导航</a>
+                    <div style="display:flex; gap:8px;">
+                      <a href="${navUrl}" target="_blank" style="flex:1; padding:6px 10px; background:#667eea; color:#fff; border-radius:4px; text-decoration:none; text-align:center;">导航</a>
+                      <a href="${detailUrl}" target="_blank" style="flex:1; padding:6px 10px; background:#10b981; color:#fff; border-radius:4px; text-decoration:none; text-align:center;">详情</a>
+                    </div>
                   </div>
                 `,
                 offset: new AMap.Pixel(0, -30)
@@ -168,6 +201,104 @@ export default function ExploreMap() {
     const getNavUrl = (lng: number, lat: number, name?: string) => {
         const to = `${lng},${lat},${encodeURIComponent(name || '目的地')}`
         return `https://uri.amap.com/navigation?to=${to}&mode=car&policy=1&src=travel_planner&callnative=0`
+    }
+
+    const getDetailUrl = (lng: number, lat: number, name?: string) => {
+        return `https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent(name || '地点')}&src=travel_planner&callnative=0`
+    }
+
+    // 添加到收藏夹
+    const addToFavorites = async (id: string, name: string, lng: number, lat: number, address: string) => {
+        try {
+            const token = localStorage.getItem('token')
+            if (!token) {
+                alert('请先登录')
+                return
+            }
+
+            const favorite = { id, name, lng, lat, address }
+            const response = await fetch(`${API_BASE_URL}/api/favorites`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(favorite)
+            })
+
+            if (response.ok) {
+                // 重新加载收藏夹
+                await loadFavorites()
+            } else if (response.status === 409) {
+                alert('已经收藏过了')
+            } else {
+                const data = await response.json()
+                alert(data.error || '收藏失败')
+            }
+        } catch (e) {
+            console.error('Failed to add favorite:', e)
+            alert('收藏失败')
+        }
+    }
+
+    // 从收藏夹移除
+    const removeFromFavorites = async (id: string) => {
+        try {
+            const token = localStorage.getItem('token')
+            if (!token) return
+
+            const response = await fetch(`${API_BASE_URL}/api/favorites/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            if (response.ok) {
+                // 重新加载收藏夹
+                await loadFavorites()
+            } else {
+                const data = await response.json()
+                alert(data.error || '删除失败')
+            }
+        } catch (e) {
+            console.error('Failed to remove favorite:', e)
+            alert('删除失败')
+        }
+    }
+
+    // 检查是否已收藏
+    const isFavorited = (id: string) => {
+        return favorites.some(f => f.id === id)
+    }
+
+    // 跳转到收藏的位置
+    const goToFavorite = (fav: { id: string; name: string; lng: number; lat: number; address: string }) => {
+        if (!map || !AMap) return
+
+        // 关闭收藏夹面板
+        setShowFavorites(false)
+
+        // 聚焦到该位置
+        map.setZoomAndCenter(15, [fav.lng, fav.lat])
+
+        // 显示信息窗口
+        const navUrl = getNavUrl(fav.lng, fav.lat, fav.name)
+        const detailUrl = getDetailUrl(fav.lng, fav.lat, fav.name)
+        const info = new AMap.InfoWindow({
+            content: `
+              <div style="padding:10px; min-width:220px;">
+                <h3 style="margin:0 0 6px 0; font-size:16px; color:#000;">${fav.name}</h3>
+                <p style="margin:0 0 8px 0; color:#333;">${fav.address}</p>
+                <div style="display:flex; gap:8px;">
+                  <a href="${navUrl}" target="_blank" style="flex:1; padding:6px 10px; background:#667eea; color:#fff; border-radius:4px; text-decoration:none; text-align:center;">导航</a>
+                  <a href="${detailUrl}" target="_blank" style="flex:1; padding:6px 10px; background:#10b981; color:#fff; border-radius:4px; text-decoration:none; text-align:center;">详情</a>
+                </div>
+              </div>
+            `,
+            offset: new AMap.Pixel(0, -30)
+        })
+        info.open(map, [fav.lng, fav.lat])
     }
 
     const searchNearbyAttractions = (center: [number, number]) => {
@@ -297,24 +428,39 @@ export default function ExploreMap() {
                 map.setCenter([attraction.location.lng, attraction.location.lat])
 
                 const navUrl = getNavUrl(attraction.location.lng, attraction.location.lat, attraction.name)
+                const detailUrl = getDetailUrl(attraction.location.lng, attraction.location.lat, attraction.name)
+                const favorited = isFavorited(attraction.id)
                 const infoWindow = new AMap.InfoWindow({
                     content: `
-            <div style="padding: 10px; min-width: 200px;">
+            <div style="padding: 10px; min-width: 220px;">
               <h3 style="margin: 0 0 8px 0; font-size: 16px; color: #000;">${attraction.name}</h3>
               <p style="margin: 4px 0; color: #333; font-size: 14px;">
                 ⭐ ${attraction.rating.toFixed(1)} 分
               </p>
-              <p style="margin: 4px 0; color: #333; font-size: 14px;">
+              <p style="margin: 4px 0 8px 0; color: #333; font-size: 14px;">
                 📍 ${attraction.location.address}
               </p>
-              <a href="${navUrl}" target="_blank" style="display:inline-block; padding:6px 10px; background:#667eea; color:#fff; border-radius:4px; text-decoration:none; margin-top:8px;">导航</a>
-              <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">
-                点击侧边栏查看详情
-              </p>
+              <div style="display:flex; gap:8px;">
+                <a href="${navUrl}" target="_blank" style="flex:1; padding:6px 10px; background:#667eea; color:#fff; border-radius:4px; text-decoration:none; text-align:center;">导航</a>
+                <a href="${detailUrl}" target="_blank" style="flex:1; padding:6px 10px; background:#10b981; color:#fff; border-radius:4px; text-decoration:none; text-align:center;">详情</a>
+                <button onclick="window.toggleFavorite_${attraction.id}()" style="padding:6px 10px; background:${favorited ? '#ef4444' : '#f59e0b'}; color:#fff; border:none; border-radius:4px; cursor:pointer;">${favorited ? '★' : '☆'}</button>
+              </div>
             </div>
           `,
                     offset: new AMap.Pixel(0, -30),
                 })
+
+                    // 创建全局函数供 HTML 调用
+                    ; (window as any)[`toggleFavorite_${attraction.id}`] = () => {
+                        if (isFavorited(attraction.id)) {
+                            removeFromFavorites(attraction.id)
+                        } else {
+                            addToFavorites(attraction.id, attraction.name, attraction.location.lng, attraction.location.lat, attraction.location.address)
+                        }
+                        infoWindow.close()
+                        // 重新打开以更新星标状态
+                        marker.emit('click')
+                    }
 
                 infoWindow.open(map, marker.getPosition())
             })
@@ -509,12 +655,51 @@ export default function ExploreMap() {
                     📍 {city}
                 </div>
                 <button
+                    className="favorites-toggle"
+                    onClick={() => setShowFavorites(!showFavorites)}
+                    title="收藏夹"
+                >
+                    ★ 收藏 ({favorites.length})
+                </button>
+                <button
                     className="sidebar-toggle"
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 >
                     {isSidebarOpen ? '◀' : '▶'}
                 </button>
             </header>
+
+            {showFavorites && (
+                <div className="favorites-panel">
+                    <div className="favorites-header">
+                        <h3>收藏夹</h3>
+                        <button onClick={() => setShowFavorites(false)}>✕</button>
+                    </div>
+                    <div className="favorites-list">
+                        {favorites.length === 0 ? (
+                            <p className="empty-hint">暂无收藏，点击景点星标按钮添加收藏</p>
+                        ) : (
+                            favorites.map((fav) => (
+                                <div key={fav.id} className="favorite-item" onClick={() => goToFavorite(fav)}>
+                                    <div className="favorite-info">
+                                        <h4>{fav.name}</h4>
+                                        <p>{fav.address}</p>
+                                    </div>
+                                    <button
+                                        className="remove-favorite"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            removeFromFavorites(fav.id)
+                                        }}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="explore-content">
                 {isSidebarOpen && (
