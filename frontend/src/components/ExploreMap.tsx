@@ -8,7 +8,7 @@ import { ATTRACTION_TYPES } from '../shared/constants'
 
 const AMAP_KEY = (configJson as any).frontend?.amapKey || 'YOUR_AMAP_KEY_HERE'
 const AMAP_SECURITY_CODE = (configJson as any).frontend?.amapSecurityJsCode || ''
-const API_BASE_URL = (configJson as any).frontend?.backendBaseUrl || '/api'
+const API_BASE_URL = (configJson as any).frontend?.backendBaseUrl || 'http://127.0.0.1:3000'
 
 export default function ExploreMap() {
     const navigate = useNavigate()

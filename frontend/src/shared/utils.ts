@@ -4,18 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 
 export const config: Config = {
   apiBaseUrl:
-    (configJson as any).frontend?.apiBaseUrl || (configJson as any).apiBaseUrl || (configJson as any).backendBaseUrl || '/api',
-  backendBaseUrl: (configJson as any).frontend?.backendBaseUrl || (configJson as any).backendBaseUrl || '/api'
+    (configJson as any).frontend?.apiBaseUrl || (configJson as any).apiBaseUrl || (configJson as any).backendBaseUrl || 'http://127.0.0.1:3000',
+  backendBaseUrl: (configJson as any).frontend?.backendBaseUrl || (configJson as any).backendBaseUrl
 }
 
 export function getApiUrl(path: string): string {
-  // 如果 path 已经以 /api 开头，直接返回
-  if (path.startsWith('/api/')) {
-    return path
-  }
-  // 如果 apiBaseUrl 是相对路径，确保正确拼接
-  const baseUrl = config.apiBaseUrl.endsWith('/') ? config.apiBaseUrl.slice(0, -1) : config.apiBaseUrl
-  return `${baseUrl}${path}`
+  return `${config.apiBaseUrl}${path}`
 }
 
 export const formatAmount = (amount: number): string => {
