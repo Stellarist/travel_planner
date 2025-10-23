@@ -68,11 +68,11 @@ function Dashboard({ user, onLogout }: DashboardProps) {
                             <p>创建详细的旅行计划，安排每日行程</p>
                         </Link>
 
-                        <div className="feature-card">
+                        <Link to="/explore" className="feature-card" style={{ textDecoration: 'none' }}>
                             <div className="card-icon">📍</div>
                             <h3>探索景点</h3>
                             <p>发现热门景点和隐藏的宝藏</p>
-                        </div>
+                        </Link>
 
                         <Link to="/budget" className="feature-card" style={{ textDecoration: 'none' }}>
                             <div className="card-icon">💰</div>

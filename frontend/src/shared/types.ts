@@ -97,3 +97,22 @@ export interface ParseExpenseResponse {
     message: string
     data?: ParsedExpenseQuery
 }
+
+export interface Attraction {
+    id: string
+    name: string
+    type: string
+    location: {
+        lat: number
+        lng: number
+        address: string
+    }
+    rating: number
+    tags: string[]
+    description: string
+    openTime?: string
+    ticketPrice?: number
+    estimatedDuration: number
+    images?: string[]
+    distance?: number
+}

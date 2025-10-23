@@ -1,11 +1,11 @@
-import configJson from '../../config.json'
+import configJson from '../../../config.json'
 import type { Config } from './types'
 import { useEffect, useRef, useState } from 'react'
 
 export const config: Config = {
   apiBaseUrl:
-    (configJson as any).apiBaseUrl || (configJson as any).backendBaseUrl || 'http://127.0.0.1:3000',
-  backendBaseUrl: (configJson as any).backendBaseUrl
+    (configJson as any).frontend?.apiBaseUrl || (configJson as any).apiBaseUrl || (configJson as any).backendBaseUrl || 'http://127.0.0.1:3000',
+  backendBaseUrl: (configJson as any).frontend?.backendBaseUrl || (configJson as any).backendBaseUrl
 }
 
 export function getApiUrl(path: string): string {

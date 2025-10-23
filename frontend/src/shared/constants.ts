@@ -23,3 +23,10 @@ export const CATEGORY_COLORS: Record<string, string> = {
     '其他(小额)': '#c0c0c0',
 }
 
+export const ATTRACTION_TYPES = [
+    { value: 'scenic', label: '🏞️ 自然风光', keywords: '风景区|公园|山|湖|海' },
+    { value: 'historic', label: '🏛️ 历史古迹', keywords: '古迹|博物馆|寺庙|故居' },
+    { value: 'theme', label: '🎡 主题乐园', keywords: '乐园|游乐场|主题公园' },
+    { value: 'food', label: '🍜 美食街区', keywords: '美食|小吃街|餐饮' },
+    { value: 'shopping', label: '🛍️ 购物中心', keywords: '商场|购物中心|步行街' },
+]

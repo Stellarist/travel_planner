@@ -34,7 +34,7 @@ func Load() (serverAddr, redisAddr, redisPwd string, redisDB int) {
 	redisPwd = ""
 	redisDB = 0
 
-	if b, err := os.ReadFile("config.json"); err == nil {
+	if b, err := os.ReadFile("../config.json"); err == nil {
 		var cfg AppConfig
 		if json.Unmarshal(b, &cfg) == nil {
 			Global = cfg
