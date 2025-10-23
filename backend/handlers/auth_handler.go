@@ -100,14 +100,14 @@ func RegisterHandler(c *gin.Context) {
 		return
 	}
 
-	userID, err := service.CreateUser(ctx, req.Username, req.Password)
+	userRecord, err := service.CreateUser(ctx, req.Username, req.Password)
 	if err != nil {
 		service.LogError("Failed to create user %s: %v", req.Username, err)
 		api.RespondError(c, http.StatusInternalServerError, "注册失败")
 		return
 	}
 
-	service.LogInfo("New user registered: %s (ID: %d)", req.Username, userID)
+	service.LogInfo("New user registered: %s (ID: %d)", req.Username, userRecord.ID)
 	c.JSON(http.StatusCreated, LoginResponse{
 		Success: true,
 		Message: "注册成功",
