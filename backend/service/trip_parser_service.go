@@ -88,61 +88,133 @@ func extractKeywordsFromWords(words []string) []string {
 
 // extractDestination 提取目的地
 func extractDestination(text string, words []string) string {
-	// 常见目的地列表
+	// 常见目的地列表（大幅扩充）
 	destinations := []string{
-		// 国内城市
-		"北京", "上海", "广州", "深圳", "杭州", "成都", "重庆", "西安", "南京", "武汉",
-		"天津", "苏州", "郑州", "长沙", "沈阳", "青岛", "无锡", "宁波", "昆明", "大连",
-		"厦门", "合肥", "福州", "哈尔滨", "济南", "石家庄", "长春", "温州", "南昌", "贵阳",
+		// 国内直辖市
+		"北京", "上海", "天津", "重庆",
+
+		// 国内省会及重点城市
+		"广州", "深圳", "杭州", "成都", "西安", "南京", "武汉", "苏州", "郑州", "长沙",
+		"沈阳", "青岛", "无锡", "宁波", "昆明", "大连", "厦门", "合肥", "福州", "哈尔滨",
+		"济南", "石家庄", "长春", "温州", "南昌", "贵阳", "南宁", "太原", "兰州", "乌鲁木齐",
+		"呼和浩特", "银川", "西宁", "海口", "珠海", "佛山", "东莞", "中山", "惠州", "汕头",
+		"常州", "扬州", "徐州", "南通", "镇江", "盐城", "泰州", "淄博", "烟台", "潍坊",
+		"威海", "临沂", "绍兴", "嘉兴", "湖州", "金华", "台州", "洛阳", "开封", "商丘",
+		"安阳", "新乡", "南阳", "株洲", "湘潭", "岳阳", "常德", "衡阳", "邵阳", "芜湖",
+		"蚌埠", "淮南", "马鞍山", "漳州", "泉州", "莆田", "三明", "南平", "龙岩",
+
+		// 热门旅游城市/景区
 		"三亚", "丽江", "大理", "桂林", "张家界", "西双版纳", "拉萨", "西藏", "九寨沟", "黄山",
-		// 国外城市
-		"东京", "大阪", "京都", "北海道", "冲绳", "首尔", "济州岛", "釜山",
-		"曼谷", "清迈", "普吉岛", "芭提雅", "新加坡", "吉隆坡", "巴厘岛", "马尔代夫",
-		"巴黎", "伦敦", "罗马", "威尼斯", "巴塞罗那", "阿姆斯特丹", "布拉格", "维也纳",
-		"纽约", "洛杉矶", "旧金山", "拉斯维加斯", "迈阿密", "夏威夷",
-		"悉尼", "墨尔本", "奥克兰", "迪拜", "伊斯坦布尔",
+		"峨眉山", "华山", "泰山", "衡山", "普陀山", "武夷山", "庐山", "五台山", "雁荡山",
+		"凤凰", "阳朔", "鼓浪屿", "千岛湖", "乌镇", "周庄", "同里", "西塘", "南浔", "朱家角",
+		"婺源", "黄果树", "香格里拉", "稻城", "亚丁", "喀纳斯", "敦煌", "莫高窟", "青海湖",
+		"茶卡盐湖", "呼伦贝尔", "长白山", "雪乡", "漠河", "阿尔山", "额济纳", "鸣沙山",
+		"月牙泉", "天山", "吐鲁番", "喀什", "伊犁", "那拉提", "巴音布鲁克",
+
 		// 港澳台
-		"香港", "澳门", "台北", "高雄", "台中", "台南",
+		"香港", "澳门", "台北", "高雄", "台中", "台南", "花莲", "垦丁", "日月潭", "阿里山",
+
+		// 日本
+		"东京", "大阪", "京都", "北海道", "冲绳", "奈良", "神户", "名古屋", "福冈", "札幌",
+		"横滨", "镰仓", "箱根", "富士山", "长崎", "广岛", "仙台", "金泽", "轻井泽",
+
+		// 韩国
+		"首尔", "济州岛", "釜山", "仁川", "江原道", "大邱", "光州",
+
+		// 东南亚
+		"曼谷", "清迈", "普吉岛", "芭提雅", "苏梅岛", "甲米", "新加坡", "吉隆坡", "槟城",
+		"巴厘岛", "雅加达", "日惹", "龙目岛", "马尔代夫", "河内", "胡志明", "芽庄", "岘港",
+		"暹粒", "吴哥窟", "金边", "万象", "琅勃拉邦", "仰光", "蒲甘", "文莱",
+
+		// 欧洲
+		"巴黎", "伦敦", "罗马", "威尼斯", "佛罗伦萨", "米兰", "那不勒斯", "比萨", "五渔村",
+		"巴塞罗那", "马德里", "塞维利亚", "格拉纳达", "阿姆斯特丹", "布鲁塞尔", "布拉格",
+		"维也纳", "布达佩斯", "慕尼黑", "柏林", "法兰克福", "科隆", "海德堡", "苏黎世",
+		"日内瓦", "因特拉肯", "卢塞恩", "雅典", "圣托里尼", "莫斯科", "圣彼得堡", "里斯本",
+		"波尔图", "哥本哈根", "斯德哥尔摩", "奥斯陆", "赫尔辛基", "雷克雅未克", "都柏林",
+		"爱丁堡", "曼彻斯特", "牛津", "剑桥", "巴斯", "约克",
+
+		// 美洲
+		"纽约", "洛杉矶", "旧金山", "拉斯维加斯", "西雅图", "芝加哥", "波士顿", "迈阿密",
+		"奥兰多", "华盛顿", "费城", "圣迭戈", "夏威夷", "阿拉斯加", "黄石公园", "大峡谷",
+		"多伦多", "温哥华", "蒙特利尔", "魁北克", "墨西哥城", "坎昆", "布宜诺斯艾利斯",
+		"里约热内卢", "圣保罗", "秘鲁", "马丘比丘", "复活节岛",
+
+		// 大洋洲
+		"悉尼", "墨尔本", "布里斯班", "黄金海岸", "凯恩斯", "珀斯", "阿德莱德", "奥克兰",
+		"皇后镇", "基督城", "惠灵顿", "大堡礁", "乌鲁鲁", "塔斯马尼亚",
+
+		// 中东/非洲
+		"迪拜", "阿布扎比", "多哈", "伊斯坦布尔", "开罗", "卢克索", "摩洛哥", "卡萨布兰卡",
+		"马拉喀什", "突尼斯", "开普敦", "毛里求斯", "塞舌尔", "肯尼亚", "坦桑尼亚",
 	}
 
-	// 1. 直接匹配目的地列表
-	for _, dest := range destinations {
+	// 1. 按长度排序，优先匹配长地名（避免"西安"被"西"误匹配）
+	sortedDests := make([]string, len(destinations))
+	copy(sortedDests, destinations)
+	for i := 0; i < len(sortedDests); i++ {
+		for j := i + 1; j < len(sortedDests); j++ {
+			if len(sortedDests[i]) < len(sortedDests[j]) {
+				sortedDests[i], sortedDests[j] = sortedDests[j], sortedDests[i]
+			}
+		}
+	}
+
+	// 2. 直接匹配目的地列表
+	for _, dest := range sortedDests {
 		if strings.Contains(text, dest) {
 			return dest
 		}
 	}
 
-	// 2. 查找"去/到/飞"等动词后面的地点
+	// 3. 查找"去/到/飞/游/玩/想去/打算去"等动词后面的地点
+	actionWords := []string{"去", "到", "飞", "游", "玩", "想去", "打算去", "准备去", "计划去", "前往"}
 	for i, word := range words {
-		if word == "去" || word == "到" || word == "飞" || word == "游" || word == "玩" {
-			if i+1 < len(words) {
-				candidate := words[i+1]
-				// 验证候选词（2-10个字符，排除常见动词）
-				excludes := []string{"吃", "看", "玩", "住", "买", "逛", "玩儿", "看看", "一下", "了", "的"}
-				isValid := len(candidate) >= 2 && len(candidate) <= 30
-				for _, ex := range excludes {
-					if candidate == ex {
-						isValid = false
-						break
+		for _, action := range actionWords {
+			if word == action || strings.Contains(word, action) {
+				if i+1 < len(words) {
+					candidate := words[i+1]
+					// 验证候选词（2-15个字符，排除常见动词）
+					excludes := []string{"吃", "看", "玩", "住", "买", "逛", "玩儿", "看看", "一下", "了", "的", "啊", "呀", "吧", "呢"}
+					isValid := len(candidate) >= 2 && len(candidate) <= 45 // 允许更长的地名
+					for _, ex := range excludes {
+						if candidate == ex {
+							isValid = false
+							break
+						}
 					}
-				}
-				if isValid {
-					return candidate
+					if isValid {
+						return candidate
+					}
 				}
 			}
 		}
 	}
 
-	// 3. 使用正则表达式提取
+	// 4. 使用正则表达式提取（更灵活的模式）
 	patterns := []string{
-		`(?:去|到|飞|游|玩)([^\s，。！？、]{2,10})(?:玩|游|旅游|旅行)?`,
+		`(?:去|到|飞|游|玩|想去|打算去|准备去|计划去|前往)([^\s，。！？、]{2,15})(?:玩|游|旅游|旅行|度假)?`,
+		`在([^\s，。！？、]{2,15})(?:玩|游|旅游|旅行|度假)`,
+		`([^\s，。！？、]{2,15})(?:游|之旅|行|自由行|自驾游|跟团游)`,
 	}
 
 	for _, pattern := range patterns {
 		re := regexp.MustCompile(pattern)
 		matches := re.FindStringSubmatch(text)
 		if len(matches) > 1 {
-			return matches[1]
+			// 再次验证提取的地点不是常见动词
+			candidate := matches[1]
+			excludes := []string{"旅游", "旅行", "度假", "出游", "游玩", "吃喝", "玩乐"}
+			isValid := true
+			for _, ex := range excludes {
+				if candidate == ex {
+					isValid = false
+					break
+				}
+			}
+			if isValid {
+				return candidate
+			}
 		}
 	}
 
@@ -153,39 +225,95 @@ func extractDestination(text string, words []string) string {
 func extractDateInfo(text string) (startDate, endDate string, duration int) {
 	now := time.Now()
 
-	// 1. 提取持续天数
+	// 1. 提取持续天数（支持更多表达）
 	duration = extractDuration(text)
 
-	// 2. 检测相对时间
-	if strings.Contains(text, "今天") {
-		startDate = now.Format("2006-01-02")
-	} else if strings.Contains(text, "明天") {
-		startDate = now.AddDate(0, 0, 1).Format("2006-01-02")
-	} else if strings.Contains(text, "后天") {
-		startDate = now.AddDate(0, 0, 2).Format("2006-01-02")
-	} else if strings.Contains(text, "大后天") {
-		startDate = now.AddDate(0, 0, 3).Format("2006-01-02")
-	} else if strings.Contains(text, "这周末") || strings.Contains(text, "本周末") {
-		// 找到本周六
-		daysUntilSaturday := (6 - int(now.Weekday()) + 7) % 7
-		if daysUntilSaturday == 0 {
-			daysUntilSaturday = 7
-		}
-		startDate = now.AddDate(0, 0, daysUntilSaturday).Format("2006-01-02")
-	} else if strings.Contains(text, "下周") || strings.Contains(text, "下星期") {
-		startDate = now.AddDate(0, 0, 7).Format("2006-01-02")
-	} else if strings.Contains(text, "下个月") || strings.Contains(text, "下月") {
-		startDate = now.AddDate(0, 1, 0).Format("2006-01-02")
+	// 2. 检测相对时间（大幅扩充）
+	relativeTimeMap := map[string]func() string{
+		"今天":   func() string { return now.Format("2006-01-02") },
+		"今日":   func() string { return now.Format("2006-01-02") },
+		"今儿":   func() string { return now.Format("2006-01-02") },
+		"明天":   func() string { return now.AddDate(0, 0, 1).Format("2006-01-02") },
+		"明日":   func() string { return now.AddDate(0, 0, 1).Format("2006-01-02") },
+		"明儿":   func() string { return now.AddDate(0, 0, 1).Format("2006-01-02") },
+		"后天":   func() string { return now.AddDate(0, 0, 2).Format("2006-01-02") },
+		"大后天":  func() string { return now.AddDate(0, 0, 3).Format("2006-01-02") },
+		"这周末":  func() string { return getWeekend(now) },
+		"本周末":  func() string { return getWeekend(now) },
+		"周末":   func() string { return getWeekend(now) },
+		"这个周末": func() string { return getWeekend(now) },
+		"下周":   func() string { return now.AddDate(0, 0, 7).Format("2006-01-02") },
+		"下星期":  func() string { return now.AddDate(0, 0, 7).Format("2006-01-02") },
+		"下个星期": func() string { return now.AddDate(0, 0, 7).Format("2006-01-02") },
+		"下周末":  func() string { return getWeekend(now.AddDate(0, 0, 7)) },
+		"下个月":  func() string { return now.AddDate(0, 1, 0).Format("2006-01-02") },
+		"下月":   func() string { return now.AddDate(0, 1, 0).Format("2006-01-02") },
+		"月底":   func() string { return getEndOfMonth(now) },
+		"月初":   func() string { return getStartOfMonth(now) },
+		"年底":   func() string { return time.Date(now.Year(), 12, 31, 0, 0, 0, 0, time.Local).Format("2006-01-02") },
+		"春节":   func() string { return getSpringFestival(now.Year()) },
+		"国庆":   func() string { return time.Date(now.Year(), 10, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02") },
+		"五一":   func() string { return time.Date(now.Year(), 5, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02") },
+		"十一":   func() string { return time.Date(now.Year(), 10, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02") },
+		"元旦":   func() string { return time.Date(now.Year()+1, 1, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02") },
+		"中秋":   func() string { return getMidAutumnFestival(now.Year()) },
+		"端午":   func() string { return getDragonBoatFestival(now.Year()) },
+		"清明":   func() string { return getTombSweepingDay(now.Year()) },
 	}
 
-	// 3. 提取具体日期
+	for keyword, dateFunc := range relativeTimeMap {
+		if strings.Contains(text, keyword) {
+			startDate = dateFunc()
+			break
+		}
+	}
+
+	// 3. 检测"N天后"、"N周后"、"N个月后"
+	afterPatterns := []struct {
+		pattern string
+		handler func(int) string
+	}{
+		{
+			pattern: `([一二三四五六七八九十两1-9]\d?)(?:个)?天(?:后|之后|以后)`,
+			handler: func(n int) string {
+				return now.AddDate(0, 0, n).Format("2006-01-02")
+			},
+		},
+		{
+			pattern: `([一二三四五六七八九十两1-9])(?:个)?周(?:后|之后|以后)`,
+			handler: func(n int) string {
+				return now.AddDate(0, 0, n*7).Format("2006-01-02")
+			},
+		},
+		{
+			pattern: `([一二三四五六七八九十两1-9]|1[0-2])(?:个)?月(?:后|之后|以后)`,
+			handler: func(n int) string {
+				return now.AddDate(0, n, 0).Format("2006-01-02")
+			},
+		},
+	}
+
+	if startDate == "" {
+		for _, ap := range afterPatterns {
+			re := regexp.MustCompile(ap.pattern)
+			if matches := re.FindStringSubmatch(text); len(matches) > 1 {
+				num := parseChineseNumber(matches[1])
+				startDate = ap.handler(num)
+				break
+			}
+		}
+	}
+
+	// 4. 提取具体日期
 	// 格式1: YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD
 	re1 := regexp.MustCompile(`(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})`)
-	if matches := re1.FindStringSubmatch(text); len(matches) == 4 {
-		year, _ := strconv.Atoi(matches[1])
-		month, _ := strconv.Atoi(matches[2])
-		day, _ := strconv.Atoi(matches[3])
-		startDate = time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+	if startDate == "" {
+		if matches := re1.FindStringSubmatch(text); len(matches) == 4 {
+			year, _ := strconv.Atoi(matches[1])
+			month, _ := strconv.Atoi(matches[2])
+			day, _ := strconv.Atoi(matches[3])
+			startDate = time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+		}
 	}
 
 	// 格式2: MM月DD日
@@ -222,7 +350,7 @@ func extractDateInfo(text string) (startDate, endDate string, duration int) {
 		}
 	}
 
-	// 4. 如果有开始日期和持续天数，计算结束日期（含起止，持续N天则结束日=开始日+N-1）
+	// 5. 如果有开始日期和持续天数，计算结束日期（含起止，持续N天则结束日=开始日+N-1）
 	if startDate != "" && duration > 0 {
 		start, err := time.Parse("2006-01-02", startDate)
 		if err == nil {
@@ -233,41 +361,179 @@ func extractDateInfo(text string) (startDate, endDate string, duration int) {
 	return
 }
 
+// 辅助函数：获取周末日期（本周六）
+func getWeekend(t time.Time) string {
+	daysUntilSaturday := (6 - int(t.Weekday()) + 7) % 7
+	if daysUntilSaturday == 0 {
+		daysUntilSaturday = 7
+	}
+	return t.AddDate(0, 0, daysUntilSaturday).Format("2006-01-02")
+}
+
+// 辅助函数：获取月底日期
+func getEndOfMonth(t time.Time) string {
+	nextMonth := t.AddDate(0, 1, 0)
+	firstDayNextMonth := time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, time.Local)
+	lastDayThisMonth := firstDayNextMonth.AddDate(0, 0, -1)
+	return lastDayThisMonth.Format("2006-01-02")
+}
+
+// 辅助函数：获取月初日期
+func getStartOfMonth(t time.Time) string {
+	return time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+}
+
+// 辅助函数：获取春节日期（简化处理，返回2月初）
+func getSpringFestival(year int) string {
+	// 简化处理，实际春节日期每年不同，这里返回2月1日
+	return time.Date(year, 2, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+}
+
+// 辅助函数：获取中秋节日期（简化处理，返回9月中旬）
+func getMidAutumnFestival(year int) string {
+	return time.Date(year, 9, 15, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+}
+
+// 辅助函数：获取端午节日期（简化处理，返回6月初）
+func getDragonBoatFestival(year int) string {
+	return time.Date(year, 6, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+}
+
+// 辅助函数：获取清明节日期（固定4月5日左右）
+func getTombSweepingDay(year int) string {
+	return time.Date(year, 4, 5, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+}
+
 // extractDuration 提取持续天数
 func extractDuration(text string) int {
-	// 1. 匹配 "X天", "X日"
-	re := regexp.MustCompile(`(\d+)\s*[天日]`)
-	if matches := re.FindStringSubmatch(text); len(matches) > 1 {
-		days, _ := strconv.Atoi(matches[1])
-		if days > 0 && days < 365 {
-			return days
+	// 1. 匹配 "X天", "X日", "X天N夜"
+	patterns := []string{
+		`(\d+)\s*[天日]`,     // 5天、3日
+		`(\d+)\s*天\d*夜`,    // 5天4夜、3天2夜
+		`([一二三四五六七八九十]+)天`, // 三天、五天
+	}
+
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		if matches := re.FindStringSubmatch(text); len(matches) > 1 {
+			days := 0
+			// 尝试解析阿拉伯数字
+			if d, err := strconv.Atoi(matches[1]); err == nil {
+				days = d
+			} else {
+				// 解析中文数字
+				days = parseChineseNumberForDuration(matches[1])
+			}
+			if days > 0 && days < 365 {
+				return days
+			}
 		}
 	}
 
-	// 2. 匹配 "一周", "两周"
+	// 2. 匹配周数："一周"、"两周"、"N周"、"N个星期"
 	weekPatterns := map[string]int{
-		"一周": 7, "1周": 7, "两周": 14, "2周": 14,
-		"三周": 21, "3周": 21, "四周": 28, "4周": 28,
+		"一周":   7,
+		"1周":   7,
+		"一个星期": 7,
+		"一星期":  7,
+		"两周":   14,
+		"2周":   14,
+		"两个星期": 14,
+		"三周":   21,
+		"3周":   21,
+		"三个星期": 21,
+		"四周":   28,
+		"4周":   28,
+		"四个星期": 28,
+		"半个月":  15,
+		"半月":   15,
+		"一个月":  30,
+		"一月":   30,
+		"两个月":  60,
+		"三个月":  90,
+		"一个礼拜": 7,
+		"两个礼拜": 14,
+		"一礼拜":  7,
+		"两礼拜":  14,
 	}
+
 	for pattern, days := range weekPatterns {
 		if strings.Contains(text, pattern) {
 			return days
 		}
 	}
 
-	// 3. 匹配中文数字
-	chineseNums := map[string]int{
-		"一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
-		"六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+	// 3. 使用正则匹配更灵活的周数表达
+	weekRegex := regexp.MustCompile(`([一二三四五六七八九十两1-9])(?:个)?(?:周|星期|礼拜)`)
+	if matches := weekRegex.FindStringSubmatch(text); len(matches) > 1 {
+		weeks := parseChineseNumber(matches[1])
+		if weeks > 0 && weeks <= 52 {
+			return weeks * 7
+		}
 	}
 
-	for cn, num := range chineseNums {
-		if strings.Contains(text, cn+"天") || strings.Contains(text, cn+"日") {
-			return num
+	// 4. 匹配"N天M夜"中的数字
+	dayNightRegex := regexp.MustCompile(`(\d+)天\d+夜`)
+	if matches := dayNightRegex.FindStringSubmatch(text); len(matches) > 1 {
+		if days, err := strconv.Atoi(matches[1]); err == nil && days > 0 && days < 365 {
+			return days
 		}
 	}
 
 	return 0
+}
+
+// parseChineseNumberForDuration 专门用于持续时间的中文数字解析
+func parseChineseNumberForDuration(s string) int {
+	chineseMap := map[string]int{
+		"一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+		"六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+		"两": 2, "俩": 2,
+		"半": 0, // 半天特殊处理
+	}
+
+	if len(s) == 1 {
+		if num, ok := chineseMap[s]; ok {
+			return num
+		}
+	}
+
+	// 处理"十X"情况（十一到十九）
+	if strings.HasPrefix(s, "十") && len(s) > 1 {
+		unit := string([]rune(s)[1:])
+		if num, ok := chineseMap[unit]; ok {
+			return 10 + num
+		}
+		return 10
+	}
+
+	// 处理"X十"情况（二十、三十等）
+	if strings.HasSuffix(s, "十") && len(s) > 1 {
+		tens := string([]rune(s)[0 : len(s)-1])
+		if num, ok := chineseMap[tens]; ok {
+			return num * 10
+		}
+	}
+
+	// 处理"X十Y"情况（二十一、三十五等）
+	if strings.Contains(s, "十") {
+		parts := strings.Split(s, "十")
+		if len(parts) == 2 {
+			tens := 0
+			unit := 0
+			if parts[0] != "" {
+				tens = chineseMap[parts[0]]
+			} else {
+				tens = 1 // "十"开头表示10
+			}
+			if parts[1] != "" {
+				unit = chineseMap[parts[1]]
+			}
+			return tens*10 + unit
+		}
+	}
+
+	return 1
 }
 
 // extractBudget 提取预算

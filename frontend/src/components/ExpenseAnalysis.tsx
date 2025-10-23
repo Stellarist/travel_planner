@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import './ExpenseAnalysis.css';
 
 interface AnalysisData {
@@ -60,10 +61,8 @@ export default function ExpenseAnalysis() {
 
                         <div className="analysis-result">
                             <h3>分析结果</h3>
-                            <div className="analysis-text">
-                                {analysisData.analysis.split('\n').map((line, index) => (
-                                    <p key={index}>{line}</p>
-                                ))}
+                            <div className="analysis-text markdown-body">
+                                <ReactMarkdown>{analysisData.analysis}</ReactMarkdown>
                             </div>
                         </div>
                     </div>
