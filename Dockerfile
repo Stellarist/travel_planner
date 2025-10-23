@@ -46,7 +46,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o travel_planner_server ./backend/main.go
 FROM redis:7-alpine
 
 # 安装必要的运行时依赖
-RUN apk add --no-cache ca-certificates nginx supervisor
+RUN apk add --no-cache ca-certificates nginx bash
 
 # 创建应用目录
 WORKDIR /app
@@ -57,10 +57,8 @@ COPY --from=backend-builder /app/travel_planner_server /app/
 # 从前端构建阶段复制构建好的静态文件
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
 
-# 复制配置文件
+# 复制配置文件和启动脚本
 COPY config.json /app/config.json
- 
-# 复制启动脚本并赋予执行权限
 COPY run.sh /app/run.sh
 RUN chmod +x /app/run.sh
 
@@ -91,45 +89,8 @@ server {
 }
 EOF
 
-# 配置 Supervisor 用于管理多个进程
-COPY <<EOF /etc/supervisord.conf
-[supervisord]
-nodaemon=true
-user=root
-logfile=/var/log/supervisord.log
-pidfile=/var/run/supervisord.pid
-
-[program:redis]
-command=redis-server --bind 127.0.0.1 --port 6379
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:backend]
-command=/app/travel_planner_server
-directory=/app
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-
-[program:nginx]
-command=nginx -g 'daemon off;'
-autostart=true
-autorestart=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-EOF
-
 # 暴露端口
 EXPOSE 80
 
-# 使用 Supervisor 启动所有服务
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
+# 使用 run.sh 启动
+CMD ["/app/run.sh"]
