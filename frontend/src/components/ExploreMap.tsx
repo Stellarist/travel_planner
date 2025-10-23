@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import AMapLoader from '@amap/amap-jsapi-loader'
 import configJson from '../../../config.json'
 import './ExploreMap.css'
-import type { Attraction } from '../shared/types'
+import type { Attraction, TripPlan } from '../shared/types'
 import { ATTRACTION_TYPES } from '../shared/constants'
 
 const AMAP_KEY = (configJson as any).frontend?.amapKey || 'YOUR_AMAP_KEY_HERE'
@@ -17,6 +17,7 @@ export default function ExploreMap() {
     const markersRef = useRef<any[]>([])
     const currentLocationMarkerRef = useRef<any>(null)
     const areaMarkerRef = useRef<any>(null)
+    const routeOverlaysRef = useRef<any[]>([])
 
     const [map, setMap] = useState<any>(null)
     const [AMap, setAMap] = useState<any>(null)
@@ -26,17 +27,19 @@ export default function ExploreMap() {
     const [attractions, setAttractions] = useState<Attraction[]>([])
     const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null)
     const [isLoading, setIsLoading] = useState(false)
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true)
     const [isLocating, setIsLocating] = useState(false)
     const [suggestions, setSuggestions] = useState<Array<{ name: string; address: string; location?: { lng: number; lat: number } }>>([])
     const [showSuggestions, setShowSuggestions] = useState(false)
     const [activeSuggestIndex, setActiveSuggestIndex] = useState(0)
     const [favorites, setFavorites] = useState<Array<{ id: string; name: string; lng: number; lat: number; address: string }>>([])
     const [showFavorites, setShowFavorites] = useState(false)
+    const [favoriteTrips, setFavoriteTrips] = useState<TripPlan[]>([])
+    const [showTripRoutes, setShowTripRoutes] = useState(false)
+    const [selectedTrip, setSelectedTrip] = useState<TripPlan | null>(null)
 
-    // 从后端加载收藏夹
     useEffect(() => {
         loadFavorites()
+        loadFavoriteTrips()
     }, [])
 
     const loadFavorites = async () => {
@@ -55,14 +58,40 @@ export default function ExploreMap() {
                 setFavorites(data || [])
             }
         } catch (e) {
-            console.error('Failed to load favorites:', e)
         }
     }
 
-    // 初始化地图
+    const loadFavoriteTrips = async () => {
+        try {
+            const token = localStorage.getItem('token')
+            if (!token) return
+
+            const response = await fetch(`${API_BASE_URL}/api/trips/favorites/list`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+            if (response.ok) {
+                const result = await response.json()
+
+                const data = result.data || result
+
+                if (Array.isArray(data)) {
+                    setFavoriteTrips(data)
+                } else {
+                    setFavoriteTrips([])
+                }
+            } else {
+                setFavoriteTrips([])
+            }
+        } catch (e) {
+            setFavoriteTrips([])
+        }
+    }
+
     useEffect(() => {
         if (AMAP_KEY === 'YOUR_AMAP_KEY_HERE') {
-            console.error('请先在 config.json 中配置高德地图 API Key')
             return
         }
 
@@ -90,8 +119,7 @@ export default function ExploreMap() {
 
                 setMap(mapInstance)
             })
-            .catch((e) => {
-                console.error('地图加载失败:', e)
+            .catch(() => {
             })
 
         return () => {
@@ -207,12 +235,10 @@ export default function ExploreMap() {
         return `https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent(name || '地点')}&src=travel_planner&callnative=0`
     }
 
-    // 添加到收藏夹
     const addToFavorites = async (id: string, name: string, lng: number, lat: number, address: string) => {
         try {
             const token = localStorage.getItem('token')
             if (!token) {
-                alert('请先登录')
                 return
             }
 
@@ -227,21 +253,12 @@ export default function ExploreMap() {
             })
 
             if (response.ok) {
-                // 重新加载收藏夹
                 await loadFavorites()
-            } else if (response.status === 409) {
-                alert('已经收藏过了')
-            } else {
-                const data = await response.json()
-                alert(data.error || '收藏失败')
             }
         } catch (e) {
-            console.error('Failed to add favorite:', e)
-            alert('收藏失败')
         }
     }
 
-    // 从收藏夹移除
     const removeFromFavorites = async (id: string) => {
         try {
             const token = localStorage.getItem('token')
@@ -255,19 +272,12 @@ export default function ExploreMap() {
             })
 
             if (response.ok) {
-                // 重新加载收藏夹
                 await loadFavorites()
-            } else {
-                const data = await response.json()
-                alert(data.error || '删除失败')
             }
         } catch (e) {
-            console.error('Failed to remove favorite:', e)
-            alert('删除失败')
         }
     }
 
-    // 检查是否已收藏
     const isFavorited = (id: string) => {
         return favorites.some(f => f.id === id)
     }
@@ -551,12 +561,179 @@ export default function ExploreMap() {
                     }
 
                     searchAttractionsByCity(cityName.replace('市', ''), '景点')
-                } else {
-                    console.error('定位失败:', result)
-                    alert('定位失败，请检查浏览器定位权限设置')
                 }
             })
         })
+    }
+
+    const clearRouteOverlays = () => {
+        routeOverlaysRef.current.forEach(overlay => {
+            try {
+                overlay.setMap(null)
+            } catch (e) {
+            }
+        })
+        routeOverlaysRef.current = []
+    }
+
+    const drawTripRoute = async (trip: TripPlan) => {
+        if (!map || !AMap) {
+            return
+        }
+
+        clearRouteOverlays()
+        clearMarkers()
+
+        setSelectedTrip(trip)
+
+        if (!trip.itinerary || trip.itinerary.length === 0) {
+            return
+        }
+
+        const locations: Array<{ name: string; location: string; day: number; time: string }> = []
+        trip.itinerary.forEach(day => {
+            if (day.activities && day.activities.length > 0) {
+                day.activities.forEach(activity => {
+                    if (activity.location) {
+                        const isTransportation = activity.location.includes('从') ||
+                            activity.location.includes('至') ||
+                            activity.location.includes('到') ||
+                            activity.name.includes('地铁') ||
+                            activity.name.includes('交通')
+
+                        if (!isTransportation) {
+                            locations.push({
+                                name: activity.name,
+                                location: activity.location,
+                                day: day.day,
+                                time: activity.time
+                            })
+                        }
+                    }
+                })
+            }
+        })
+
+        if (locations.length === 0) {
+            return
+        }
+
+        const geocoder = new AMap.Geocoder({ city: trip.destination })
+        const coordinates: Array<{ lng: number; lat: number; name: string; day: number; time: string }> = []
+
+        const colors = ['#667eea', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+        const dayPolylines = new Map<number, any>()
+
+        for (let i = 0; i < locations.length; i++) {
+            const loc = locations[i]
+
+            await new Promise<void>((resolve) => {
+                let resolved = false
+                const timeoutId = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true
+                        resolve()
+                    }
+                }, 5000)
+
+                geocoder.getLocation(loc.location, (status: string, result: any) => {
+                    if (resolved) {
+                        return
+                    }
+
+                    clearTimeout(timeoutId)
+
+                    if (status === 'complete' && result.geocodes?.length) {
+                        const pos = result.geocodes[0].location
+                        const coord = {
+                            lng: pos.lng,
+                            lat: pos.lat,
+                            name: loc.name,
+                            day: loc.day,
+                            time: loc.time
+                        }
+                        coordinates.push(coord)
+
+                        const color = colors[(loc.day - 1) % colors.length]
+                        const dayCoords = coordinates.filter(c => c.day === loc.day)
+                        const indexInDay = dayCoords.length
+
+                        const marker = new AMap.Marker({
+                            position: [coord.lng, coord.lat],
+                            title: coord.name,
+                            anchor: 'bottom-center',
+                            label: {
+                                content: `<div style="background:${color}; color:white; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;">Day${loc.day}-${indexInDay}</div>`,
+                                offset: new AMap.Pixel(0, -35)
+                            },
+                            icon: new AMap.Icon({
+                                size: new AMap.Size(32, 32),
+                                image: 'https://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
+                                imageSize: new AMap.Size(32, 32),
+                                imageOffset: new AMap.Pixel(0, 0)
+                            })
+                        })
+
+                        marker.on('click', () => {
+                            const info = new AMap.InfoWindow({
+                                content: `
+                                    <div style="padding:10px; min-width:200px;">
+                                        <h3 style="margin:0 0 6px 0; font-size:16px; color:#000;">Day ${loc.day} - ${coord.time}</h3>
+                                        <p style="margin:0; color:#333; font-weight:600;">${coord.name}</p>
+                                    </div>
+                                `,
+                                offset: new AMap.Pixel(0, -30)
+                            })
+                            info.open(map, [coord.lng, coord.lat])
+                        })
+
+                        marker.setMap(map)
+                        routeOverlaysRef.current.push(marker)
+
+                        if (dayCoords.length > 1) {
+                            const path = dayCoords.map(c => [c.lng, c.lat])
+
+                            if (dayPolylines.has(loc.day)) {
+                                const oldLine = dayPolylines.get(loc.day)!
+                                oldLine.setMap(null)
+                                const idx = routeOverlaysRef.current.indexOf(oldLine)
+                                if (idx > -1) routeOverlaysRef.current.splice(idx, 1)
+                            }
+
+                            const polyline = new AMap.Polyline({
+                                path: path,
+                                strokeColor: color,
+                                strokeWeight: 4,
+                                strokeOpacity: 0.8,
+                                lineJoin: 'round',
+                                lineCap: 'round',
+                            })
+                            polyline.setMap(map)
+                            routeOverlaysRef.current.push(polyline)
+                            dayPolylines.set(loc.day, polyline)
+                        }
+
+                        if (coordinates.length === 1) {
+                            map.setZoomAndCenter(15, [coord.lng, coord.lat])
+                        } else {
+                            map.setFitView(null, false, [60, 60, 60, 60])
+                        }
+                    }
+
+                    resolved = true
+                    setTimeout(resolve, 150)
+                })
+            })
+        }
+
+        if (coordinates.length === 0) {
+            return
+        }
+
+        map.setFitView(null, false, [60, 60, 60, 60])
+
+        // 关闭行程面板
+        setShowTripRoutes(false)
     }
 
     useEffect(() => {
@@ -662,10 +839,11 @@ export default function ExploreMap() {
                     ★ 收藏 ({favorites.length})
                 </button>
                 <button
-                    className="sidebar-toggle"
-                    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                    className="trip-routes-toggle"
+                    onClick={() => setShowTripRoutes(!showTripRoutes)}
+                    title="查看收藏的行程路线"
                 >
-                    {isSidebarOpen ? '◀' : '▶'}
+                    🗺️ 行程路线 ({Array.isArray(favoriteTrips) ? favoriteTrips.length : 0})
                 </button>
             </header>
 
@@ -701,57 +879,138 @@ export default function ExploreMap() {
                 </div>
             )}
 
-            <div className="explore-content">
-                {isSidebarOpen && (
-                    <aside className="explore-sidebar">
-                        <div className="filter-section">
-                            <h3>景点类型</h3>
-                            <div className="type-filters">
-                                {ATTRACTION_TYPES.map(type => (
-                                    <label key={type.value} className="type-filter">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedTypes.includes(type.value)}
-                                            onChange={() => toggleType(type.value)}
-                                        />
-                                        <span>{type.label}</span>
-                                    </label>
-                                ))}
-                            </div>
-                            <button onClick={applyFilters} className="apply-filter-btn">
-                                应用筛选
-                            </button>
-                        </div>
+            {showTripRoutes && (
+                <div className="favorites-panel">
+                    <div className="favorites-header">
+                        <h3>收藏的行程</h3>
+                        <button onClick={() => setShowTripRoutes(false)}>✕</button>
+                    </div>
+                    <div className="favorites-list">
+                        {!Array.isArray(favoriteTrips) || favoriteTrips.length === 0 ? (
+                            <p className="empty-hint">暂无收藏的行程，请先在规划行程页面收藏行程</p>
+                        ) : (
+                            favoriteTrips.map((trip) => {
+                                const totalActivities = trip.itinerary?.reduce((sum, day) => sum + (day.activities?.length || 0), 0) || 0
+                                return (
+                                    <div key={trip.id} className="favorite-item">
+                                        <div className="favorite-info" onClick={() => drawTripRoute(trip)} style={{ cursor: 'pointer', flex: 1 }}>
+                                            <h4>🗺️ {trip.destination}</h4>
+                                            <p>{trip.startDate} ~ {trip.endDate}</p>
+                                            <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                                {trip.itinerary?.length || 0} 天行程 · {totalActivities} 个活动
+                                            </p>
+                                        </div>
+                                        <button
+                                            className="view-route-btn"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                drawTripRoute(trip)
+                                            }}
+                                            style={{
+                                                padding: '4px 12px',
+                                                background: '#667eea',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                fontSize: '12px'
+                                            }}
+                                        >
+                                            查看路线
+                                        </button>
+                                    </div>
+                                )
+                            })
+                        )}
+                    </div>
+                </div>
+            )}
 
-                        <div className="attractions-list">
-                            <h3>景点列表 ({attractions.length})</h3>
-                            {attractions.length === 0 && !isLoading && (
-                                <p className="empty-hint">暂无景点数据，请尝试搜索</p>
-                            )}
-                            {attractions.map((attraction) => (
-                                <div
-                                    key={attraction.id}
-                                    className={`attraction-item ${selectedAttraction?.id === attraction.id ? 'selected' : ''}`}
-                                    onClick={() => locateAttraction(attraction)}
-                                >
-                                    <h4>{attraction.name}</h4>
-                                    <div className="attraction-meta">
-                                        <span className="rating">⭐ {attraction.rating.toFixed(1)}</span>
-                                        {attraction.distance && (
-                                            <span className="distance">📍 {attraction.distance.toFixed(1)}km</span>
-                                        )}
-                                    </div>
-                                    <p className="attraction-address">{attraction.location.address}</p>
-                                    <div className="attraction-tags">
-                                        {attraction.tags.slice(0, 3).map((tag, i) => (
-                                            <span key={i} className="tag">{tag}</span>
-                                        ))}
-                                    </div>
+            <div className="explore-content">
+                <aside className="explore-sidebar">
+                    {selectedTrip && (
+                        <div className="trip-route-info" style={{
+                            padding: '12px',
+                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                            color: 'white',
+                            borderRadius: '8px',
+                            marginBottom: '16px'
+                        }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px' }}>当前行程路线</h4>
+                                    <p style={{ margin: 0, fontSize: '16px', fontWeight: 'bold' }}>{selectedTrip.destination}</p>
+                                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.9 }}>
+                                        {selectedTrip.startDate} ~ {selectedTrip.endDate}
+                                    </p>
                                 </div>
+                                <button
+                                    onClick={() => {
+                                        clearRouteOverlays()
+                                        setSelectedTrip(null)
+                                    }}
+                                    style={{
+                                        padding: '6px 12px',
+                                        background: 'rgba(255,255,255,0.2)',
+                                        color: 'white',
+                                        border: '1px solid rgba(255,255,255,0.3)',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    清除路线
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    <div className="filter-section">
+                        <h3>景点类型</h3>
+                        <div className="type-filters">
+                            {ATTRACTION_TYPES.map(type => (
+                                <label key={type.value} className="type-filter">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedTypes.includes(type.value)}
+                                        onChange={() => toggleType(type.value)}
+                                    />
+                                    <span>{type.label}</span>
+                                </label>
                             ))}
                         </div>
-                    </aside>
-                )}
+                        <button onClick={applyFilters} className="apply-filter-btn">
+                            应用筛选
+                        </button>
+                    </div>
+
+                    <div className="attractions-list">
+                        <h3>景点列表 ({attractions.length})</h3>
+                        {attractions.length === 0 && !isLoading && (
+                            <p className="empty-hint">暂无景点数据，请尝试搜索</p>
+                        )}
+                        {attractions.map((attraction) => (
+                            <div
+                                key={attraction.id}
+                                className={`attraction-item ${selectedAttraction?.id === attraction.id ? 'selected' : ''}`}
+                                onClick={() => locateAttraction(attraction)}
+                            >
+                                <h4>{attraction.name}</h4>
+                                <div className="attraction-meta">
+                                    <span className="rating">⭐ {attraction.rating.toFixed(1)}</span>
+                                    {attraction.distance && (
+                                        <span className="distance">📍 {attraction.distance.toFixed(1)}km</span>
+                                    )}
+                                </div>
+                                <p className="attraction-address">{attraction.location.address}</p>
+                                <div className="attraction-tags">
+                                    {attraction.tags.slice(0, 3).map((tag, i) => (
+                                        <span key={i} className="tag">{tag}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </aside>
 
                 <div className="map-container">
                     <div ref={mapRef} className="amap" style={{ width: '100%', height: '100%' }} />
