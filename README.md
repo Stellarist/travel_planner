@@ -11,8 +11,9 @@ AI Travel Planner 是一个 Web 版的智能旅行规划助手，旨在简化旅
 ```
 docker pull ghcr.io/stellarist/travel_planner:latest
 docker run -d -p8080:80 --name travel_planner ghcr.io/stellarist/travel_planner:latest
-访问地址: localhost:8080
 ```
+
+访问地址: <localhost:8080>
 
 ---
 
