@@ -34,7 +34,17 @@ func Load() (serverAddr, redisAddr, redisPwd string, redisDB int) {
 	redisPwd = ""
 	redisDB = 0
 
-	if b, err := os.ReadFile("../config.json"); err == nil {
+	// 尝试多个可能的配置文件路径
+	configPaths := []string{"config.json", "../config.json", "/app/config.json"}
+	var b []byte
+	var err error
+	for _, path := range configPaths {
+		if b, err = os.ReadFile(path); err == nil {
+			break
+		}
+	}
+
+	if err == nil {
 		var cfg AppConfig
 		if json.Unmarshal(b, &cfg) == nil {
 			Global = cfg
